@@ -1,0 +1,25 @@
+{
+  "name": "principios_prog_web_25.2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Simon60679/principios_prog_web_25.2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Simon60679/principios_prog_web_25.2/issues"
+  },
+  "homepage": "https://github.com/Simon60679/principios_prog_web_25.2#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
