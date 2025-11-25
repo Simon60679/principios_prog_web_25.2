@@ -1,8 +1,0 @@
-# Dependências do Node.js
-node_modules/
-
-# Arquivos de ambiente (contém senhas e chaves)
-.env
-
-# Arquivos de build do TypeScript
-dist/
