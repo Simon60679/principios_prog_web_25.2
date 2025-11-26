@@ -1,0 +1,16 @@
+### 1. Criar um novo usuário (POST)
+# @name createUser
+POST http://localhost:3000/users
+Content-Type: application/json
+
+{
+  "name": "Ada Lovelace",
+  "email": "ada.lovelace@example.com",
+  "password": "super_secret_password"
+}
+
+###
+### 2. Listar todos os usuários (GET)
+# @name getAllUsers
+GET http://localhost:3000/users
+
