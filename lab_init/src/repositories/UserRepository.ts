@@ -15,6 +15,16 @@ export class UserRepository {
   async findUserByEmail(email: string) {
     return await User.findOne({ where: { email } });
   }
+
+  // Buscar um usuário por ID
+  async findUserById(id: number) {
+    return await User.findByPk(id);
+  }
+
+  // Deletar um usuário por ID
+  async deleteUser(id: number) {
+    return await User.destroy({ where: { id } });
+  }
 }
 
 export default new UserRepository();

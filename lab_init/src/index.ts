@@ -41,6 +41,30 @@ app.get("/users", async (req: Request, res: Response) => {
   }
 });
 
+// Rota para deletar um usuário por ID
+app.delete("/users/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido." });
+    }
+
+    const user = await userRepository.findUserById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado." });
+    }
+
+    await userRepository.deleteUser(id);
+    return res.status(204).send(); // 204 No Content -> sucesso, sem corpo de resposta
+  } catch (error: any) {
+    console.error("Erro ao deletar usuário:", error);
+    return res
+      .status(500)
+      .json({ message: "Erro ao deletar o usuário", error: error.message });
+  }
+});
+
 // Sincronizar banco e subir servidor
 const PORT = process.env.PORT || 3000;
 

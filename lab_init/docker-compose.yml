@@ -6,9 +6,9 @@ services:
     image: postgres:13
     container_name: meu-postgres-db
     environment:
-      POSTGRES_USER: lab-init # Corresponde ao DB_USER no seu .env
-      POSTGRES_PASSWORD: web1232 # Corresponde ao DB_PASSWORD no seu .env
-      POSTGRES_DB: lab_init_web_II # Corresponde ao DB_NAME no seu .env
+      POSTGRES_USER: lab-init
+      POSTGRES_PASSWORD: web1232 
+      POSTGRES_DB: lab_init_web_II 
     ports:
       - "5432:5432" # Mapeia a porta do seu PC para a porta do contêiner
     volumes:

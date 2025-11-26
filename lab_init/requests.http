@@ -14,3 +14,8 @@ Content-Type: application/json
 # @name getAllUsers
 GET http://localhost:3000/users
 
+###
+### 3. Deletar um usuário por ID (DELETE)
+# @name deleteUser
+# Altere o '1' para o ID do usuário que você quer deletar
+DELETE http://localhost:3000/users/5
