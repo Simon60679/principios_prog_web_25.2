@@ -2,6 +2,8 @@ import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import sequelize from "./config/database";
 import userRepository from "./repositories/UserRepository";
+import productRepository from "./repositories/ProductRepository";
+import './models/associations';
 
 dotenv.config();
 
@@ -62,6 +64,60 @@ app.delete("/users/:id", async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: "Erro ao deletar o usuário", error: error.message });
+  }
+});
+
+// Rota para criar um produto
+app.post("/products", async (req: Request, res: Response) => {
+    try {
+        const { name, price, description, userId } = req.body;
+        
+        if (!name || !price || !description || !userId) {
+            return res.status(400).json({ message: "Nome, preço, descrição e userId são obrigatórios." });
+        }
+
+        const product = await productRepository.createProduct({ name, price, description, userId });
+        return res.status(201).json(product);
+    } catch (error: any) {
+        console.error("Erro ao criar produto:", error);
+        return res.status(500).json({ message: "Erro ao criar o produto", error: error.message });
+    }
+});
+
+// Rota para listar produtos
+app.get("/products", async (req: Request, res: Response) => {
+  try {
+    const products = await productRepository.getAllProducts();
+    return res.json(products);
+  } catch (error: any) {
+    console.error("Erro ao obter produtos:", error);
+    return res
+      .status(500)
+      .json({ message: "Erro ao obter os produtos", error: error.message });
+  }
+});
+
+// Rota para deletar um produto por ID
+app.delete("/products/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "ID inválido." });
+    }
+
+    const product = await productRepository.findProductById(id);
+    if (!product) {
+      return res.status(404).json({ message: "Produto não encontrado." });
+    }
+
+    await productRepository.deleteProduct(id);
+    return res.status(204).send(); // 204 No Content -> sucesso, sem corpo de resposta
+  } catch (error: any) {
+    console.error("Erro ao deletar produto:", error);
+    return res
+      .status(500)
+      .json({ message: "Erro ao deletar o produto", error: error.message });
   }
 });
 

@@ -18,4 +18,22 @@ GET http://localhost:3000/users
 ### 3. Deletar um usuário por ID (DELETE)
 # @name deleteUser
 # Altere o '1' para o ID do usuário que você quer deletar
-DELETE http://localhost:3000/users/5
+DELETE http://localhost:3000/users/2
+
+###
+### 4. Criar um novo produto (POST)
+# @name createProduct
+POST http://localhost:3000/products
+Content-Type: application/json
+
+{
+  "userId": 2, // Tem que existir nos usuários
+  "name": "Genérico",
+  "price": 2.80,
+  "description": "Um produto qualquer."
+}
+
+###
+### 5. Listar todos os produtos (GET)
+# @name getAllProducts
+GET http://localhost:3000/products
