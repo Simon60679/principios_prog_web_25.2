@@ -23,7 +23,7 @@ export class ProductRepository {
       where: {
         userId: userId, // Aplica o filtro na chave estrangeira
       },
-      include: [{ model: User, as: 'vendedor', attributes: ['name'] }]
+      include: [{ model: User, as: 'seller', attributes: ['name'] }]
       });
     }
 

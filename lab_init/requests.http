@@ -18,7 +18,7 @@ GET http://localhost:3000/users
 ### 3. Deletar um usuário por ID (DELETE)
 # @name deleteUser
 # Altere o '1' para o ID do usuário que você quer deletar
-DELETE http://localhost:3000/users/2
+DELETE http://localhost:3000/users/1
 
 ###
 ### 4. Criar um novo produto (POST)
@@ -27,7 +27,7 @@ POST http://localhost:3000/products
 Content-Type: application/json
 
 {
-  "userId": 2, // Tem que existir nos usuários
+  "userId": 1,
   "name": "Genérico",
   "price": 2.80,
   "description": "Um produto qualquer."
@@ -37,3 +37,19 @@ Content-Type: application/json
 ### 5. Listar todos os produtos (GET)
 # @name getAllProducts
 GET http://localhost:3000/products
+
+### 6. Visualizar Carrinho do Usuário (GET)
+// Rota: GET /users/:userId/cart (a rota que você acabou de implementar)
+# @name getCartDetails
+GET http://localhost:3000/users/1/cart
+
+### 7. Adicionar Produto ao Carrinho (POST)
+# @name addItemToCart
+POST http://localhost:3000/cart/add
+Content-Type: application/json
+
+{
+    "userId": 1, 
+    "productId": 1,
+    "quantity": 2
+}

@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import sequelize from "./config/database";
 import userRepository from "./repositories/UserRepository";
+import cartRepository from "./repositories/CartRepository";
 import productRepository from "./repositories/ProductRepository";
 import './models/associations';
 
@@ -119,6 +120,56 @@ app.delete("/products/:id", async (req: Request, res: Response) => {
       .status(500)
       .json({ message: "Erro ao deletar o produto", error: error.message });
   }
+});
+
+app.get("/users/:userId/cart", async (req: Request, res: Response) => {
+    try {
+        const userId = parseInt(req.params.userId, 10);
+
+        if (isNaN(userId)) {
+            return res.status(400).json({ message: "ID de usuário inválido." });
+        }
+        
+        const cartDetails = await cartRepository.findCartById(userId);
+        
+        if (!cartDetails) {
+            // Este caso só deve ocorrer se o CartRepository.createCart tiver falhado durante o createUser,
+            // mas é bom verificar.
+            return res.status(404).json({ message: "Carrinho não encontrado para este usuário." });
+        }
+
+        return res.json(cartDetails);
+    } catch (error: any) {
+        console.error("Erro ao obter carrinho:", error);
+        return res
+            .status(500)
+            .json({ message: "Erro ao obter o carrinho", error: error.message });
+    }
+});
+
+// Adicionar ou Atualizar Produto no Carrinho
+app.post("/cart/add", async (req: Request, res: Response) => {
+    try {
+        const { userId, productId, quantity } = req.body;
+
+        // Validação básica
+        if (!userId || !productId || !quantity || typeof quantity !== 'number' || quantity <= 0) {
+            return res.status(400).json({ message: "userId, productId e uma quantity positiva são obrigatórios." });
+        }
+        
+        // Opcional: Você pode querer verificar se o User e o Product realmente existem antes de tentar adicionar.
+
+        const cartItem = await cartRepository.addItemToCart({ userId, productId, quantity });
+        
+        return res.status(200).json(cartItem); // 200 OK para atualização ou adição bem-sucedida
+
+    } catch (error: any) {
+        console.error("Erro ao adicionar item ao carrinho:", error);
+        // Este erro geralmente será um 500 (falha de banco de dados ou FK violation)
+        return res
+            .status(500)
+            .json({ message: "Erro ao processar item do carrinho", error: error.message });
+    }
 });
 
 // Sincronizar banco e subir servidor

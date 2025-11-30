@@ -1,9 +1,30 @@
 import User, { UserCreationAttributes } from "../models/User";
+import Cart from "../models/Cart";
+import cartRepository from "./CartRepository";
+import sequelize from "../config/database";
 
 export class UserRepository {
   // Criar um novo usuário
   async createUser(user: UserCreationAttributes) {
-    return await User.create(user);
+    const t = await sequelize.transaction();
+
+    try {
+      const newUser = await User.create(user, { transaction: t });
+
+      await cartRepository.createCart({ userId: newUser.id}, { transaction: t });
+
+      await t.commit();
+
+      const userWithCart = await User.findByPk(newUser.id, {
+        include: [{ model: Cart, as: 'cart' }]
+      });
+
+      return userWithCart;
+
+    } catch (error) {
+      await t.rollback(); // Reverte a transação em caso de erro
+      throw error;
+    }
   }
 
   // Listar todos os usuários
