@@ -51,5 +51,10 @@ Content-Type: application/json
 {
     "userId": 1, 
     "productId": 1,
-    "quantity": 2
+    "quantity": 1
 }
+
+### 8. Finalizar Compra (Checkout)
+# Rota: POST /checkout/:userId
+POST http://localhost:3000/checkout/1 
+Content-Type: application/json

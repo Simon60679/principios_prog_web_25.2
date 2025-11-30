@@ -1,4 +1,5 @@
 import { Model, DataTypes, Optional } from "sequelize";
+import Product from "./Product";
 import sequelize from "../config/database";
 
 // 1. Atributos que existem na tabela
@@ -20,6 +21,7 @@ export class CartItem
   public cartId!: number;
   public productId!: number;
   public quantity!: number;
+  public readonly product?: Product;
 }
 
 // 4. Inicialização do modelo (mapeia pra tabela)

@@ -19,6 +19,7 @@ export class Cart
   public userId!: number;
   public readonly User?: User;
   public readonly CartItems?: CartItem[];
+  public readonly items?: CartItem[];
 }
 
 // 4. Inicialização do modelo (mapeia pra tabela)

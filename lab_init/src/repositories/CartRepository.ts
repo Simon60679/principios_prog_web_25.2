@@ -63,7 +63,7 @@ export class CartRepository {
 
         // Retorna o item de carrinho atualizado ou adicionado
         return await CartItem.findOne({
-            where: { // ✨ CORREÇÃO: Usamos 'where' para chaves primárias compostas
+            where: { // Usamos 'where' para chaves primárias compostas
                 cartId: cartId,
                 productId: productId,
             },

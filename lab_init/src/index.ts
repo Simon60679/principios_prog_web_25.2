@@ -4,6 +4,7 @@ import sequelize from "./config/database";
 import userRepository from "./repositories/UserRepository";
 import cartRepository from "./repositories/CartRepository";
 import productRepository from "./repositories/ProductRepository";
+import purchaseRepository from "./repositories/PurchaseRepository";
 import './models/associations';
 
 dotenv.config();
@@ -122,6 +123,7 @@ app.delete("/products/:id", async (req: Request, res: Response) => {
   }
 });
 
+// Rota para visualizar carrinho do usuário
 app.get("/users/:userId/cart", async (req: Request, res: Response) => {
     try {
         const userId = parseInt(req.params.userId, 10);
@@ -169,6 +171,36 @@ app.post("/cart/add", async (req: Request, res: Response) => {
         return res
             .status(500)
             .json({ message: "Erro ao processar item do carrinho", error: error.message });
+    }
+});
+
+// Rota de checkout da compra
+app.post("/checkout/:userId", async (req: Request, res: Response) => {
+    try {
+        const userId = parseInt(req.params.userId, 10);
+
+        if (isNaN(userId)) {
+            return res.status(400).json({ message: "ID de usuário inválido." });
+        }
+        
+        const purchase = await purchaseRepository.finalizePurchase(userId);
+        
+        return res.status(201).json({ 
+            message: "Compra finalizada com sucesso!", 
+            purchase: purchase 
+        });
+
+    } catch (error: any) {
+        console.error("Erro ao finalizar compra:", error);
+        
+        // Retorna 400 se for um erro de validação (como "Carrinho vazio")
+        if (error.message.includes("Carrinho vazio")) {
+            return res.status(400).json({ message: error.message });
+        }
+        
+        return res
+            .status(500)
+            .json({ message: "Erro interno ao processar a compra", error: error.message });
     }
 });
 

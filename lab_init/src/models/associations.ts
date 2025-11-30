@@ -2,8 +2,8 @@ import { User } from './User';
 import { Product } from './Product';
 import { Cart } from './Cart';
 import CartItem from './CartItem';
-
-// Definição da Associação One-to-Many
+import Purchase from './Purchase';
+import PurchaseItem from './PurchaseItem';
 
 // Um Usuário pode ter muitos Produtos.
 User.hasMany(Product, {
@@ -18,8 +18,6 @@ Product.belongsTo(User, {
     as: 'seller'        // O nome que será usado para acessar o usuário
 });
 
-// Definição da Associação One-to-One
-
 // Um Usuário tem um Carrinho (hasOne)
 User.hasOne(Cart, {
     foreignKey: 'userId', // A chave estrangeira no modelo Cart
@@ -33,7 +31,6 @@ Cart.belongsTo(User, {
     as: 'user', // O nome para acessar o usuário
 });
 
-// Associações de Muitos para Muitos
 // Carrinho e Produtos estão ligados através da tabela CartItem
 Cart.belongsToMany(Product, {
     through: CartItem, // A tabela intermediária é CartItem
@@ -59,4 +56,30 @@ CartItem.belongsTo(Cart, { foreignKey: 'cartId' });
 Product.hasMany(CartItem, { foreignKey: 'productId', as: 'cartLink' });
 CartItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 
-export { User, Product, Cart, CartItem };
+// Um Usuário tem muitos Registros de Compra
+User.hasMany(Purchase, {
+    foreignKey: 'userId', 
+    as: 'purchases',       
+    onDelete: 'CASCADE'   
+});
+
+// Um Registro de Compra pertence a um único Usuário
+Purchase.belongsTo(User, {
+    foreignKey: 'userId', 
+    as: 'customer'           
+});
+
+// Um Registro de Compra tem muitos Itens de Compra
+Purchase.hasMany(PurchaseItem, {
+    foreignKey: 'purchaseId',
+    as: 'items',
+    onDelete: 'CASCADE'
+});
+
+// Um Item de Compra pertence a um único Registro de Compra
+PurchaseItem.belongsTo(Purchase, {
+    foreignKey: 'purchaseId',
+    as: 'purchase'
+});
+
+export { User, Product, Cart, CartItem, Purchase, PurchaseItem };
