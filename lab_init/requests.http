@@ -84,3 +84,18 @@ Content-Type: application/json
 {
   "stock": 50 
 }
+
+### 13. Remover Item Completo do Carrinho (DELETE)
+# Rota: DELETE /cart/:userId/item/:productId
+# Remove o Produto de ID 1 do Carrinho do Usuário de ID 1
+DELETE http://localhost:3000/cart/1/item/1
+
+### 14. Diminuir Quantidade (PATCH)
+# Rota: PATCH /cart/:userId/item/:productId/decrease
+# Diminui 2 unidades do Produto de ID 1 no Carrinho do Usuário de ID 1
+PATCH http://localhost:3000/cart/1/item/1/decrease
+Content-Type: application/json
+
+{
+  "quantity": 2 
+}

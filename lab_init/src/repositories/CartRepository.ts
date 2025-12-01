@@ -88,6 +88,52 @@ export class CartRepository {
             ...options
         });
     }
+
+    // Remove item do carrinho
+    async removeItemFromCart(userId: number, productId: number) {
+        // O método destroy remove linhas que correspondem ao critério 'where'.
+        const deletedRows = await CartItem.destroy({
+            where: {
+                cartId: userId, // O carrinho do usuário
+                productId: productId, // O item a ser removido
+            }
+        });
+
+        return deletedRows;
+    }
+
+    async decreaseItemQuantity(userId: number, productId: number, quantityToDecrease: number) {
+        
+        if (quantityToDecrease <= 0) {
+            throw new Error("A quantidade a diminuir deve ser maior que zero.");
+        }
+
+        let cartItem = await CartItem.findOne({
+            where: { cartId: userId, productId: productId }
+        });
+
+        if (!cartItem) {
+            return null; // Item não está no carrinho
+        }
+        
+        // 1. Calcula a nova quantidade
+        const newQuantity = cartItem.quantity - quantityToDecrease;
+
+        if (newQuantity <= 0) {
+            // 2. Se a nova quantidade for <= 0, DELETA o item
+            await cartItem.destroy();
+            return { deleted: true, productId };
+        } else {
+            // 3. Se a nova quantidade for > 0, ATUALIZA a quantidade
+            cartItem.quantity = newQuantity;
+            await cartItem.save();
+
+            // Opcional: retorna o item com o Produto incluído (para o cliente ver o estado)
+            return await CartItem.findByPk(cartItem.cartId, {
+                 include: [{ model: Product, as: 'product' }]
+            });
+        }
+    }
 }
 
 export default new CartRepository();

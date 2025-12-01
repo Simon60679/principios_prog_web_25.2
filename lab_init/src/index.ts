@@ -254,6 +254,80 @@ app.post("/cart/add", async (req: Request, res: Response) => {
     }
 });
 
+// Remover Item do Carrinho
+// Rota: DELETE /cart/:userId/item/:productId
+app.delete("/cart/:userId/item/:productId", async (req: Request, res: Response) => {
+    try {
+        const userId = parseInt(req.params.userId, 10);
+        const productId = parseInt(req.params.productId, 10);
+
+        if (isNaN(userId) || isNaN(productId)) {
+            return res.status(400).json({ message: "IDs de usuário ou produto inválidos." });
+        }
+        
+        // Chama o método do repositório
+        const deletedRows = await cartRepository.removeItemFromCart(userId, productId);
+        
+        if (deletedRows === 0) {
+            return res.status(404).json({ message: "Item não encontrado no carrinho ou carrinho vazio." });
+        }
+
+        return res.status(200).json({ 
+            message: `Produto ${productId} removido completamente do carrinho do usuário ${userId}.`,
+            deletedCount: deletedRows
+        });
+
+    } catch (error: any) {
+        console.error("Erro ao remover item do carrinho:", error);
+        return res
+            .status(500)
+            .json({ message: "Erro interno ao remover item do carrinho", error: error.message });
+    }
+});
+
+// Diminuir Quantidade de Item no Carrinho
+// Rota: PATCH /cart/:userId/item/:productId/decrease
+app.patch("/cart/:userId/item/:productId/decrease", async (req: Request, res: Response) => {
+    try {
+        const userId = parseInt(req.params.userId, 10);
+        const productId = parseInt(req.params.productId, 10);
+        const { quantity: quantityToDecrease } = req.body; 
+
+        if (isNaN(userId) || isNaN(productId) || typeof quantityToDecrease !== 'number' || quantityToDecrease <= 0) {
+            return res.status(400).json({ 
+                message: "Dados inválidos. Verifique os IDs e a 'quantity' a ser diminuída." 
+            });
+        }
+        
+        // Chama o método do repositório
+        const result = await cartRepository.decreaseItemQuantity(userId, productId, quantityToDecrease);
+        
+        if (result === null) {
+            return res.status(404).json({ message: "Item não encontrado no carrinho." });
+        }
+        
+        // Verifica se o item foi deletado
+        if ('deleted' in result && result.deleted) {
+            return res.status(200).json({ 
+                message: `Produto ${productId} removido do carrinho. A nova quantidade seria zero ou negativa.`,
+                deleted: true
+            });
+        }
+        
+        // Item atualizado
+        return res.status(200).json({ 
+            message: `Quantidade de produto ${productId} atualizada.`,
+            item: result
+        });
+
+    } catch (error: any) {
+        console.error("Erro ao diminuir quantidade:", error);
+        return res
+            .status(500)
+            .json({ message: "Erro interno ao diminuir a quantidade do item", error: error.message });
+    }
+});
+
 // Rota de checkout da compra
 app.post("/checkout/:userId", async (req: Request, res: Response) => {
     try {
