@@ -5,6 +5,7 @@ import userRepository from "./repositories/UserRepository";
 import cartRepository from "./repositories/CartRepository";
 import productRepository from "./repositories/ProductRepository";
 import purchaseRepository from "./repositories/PurchaseRepository";
+import saleRepository from "./repositories/SaleRepository";
 import './models/associations';
 
 dotenv.config();
@@ -201,6 +202,58 @@ app.post("/checkout/:userId", async (req: Request, res: Response) => {
         return res
             .status(500)
             .json({ message: "Erro interno ao processar a compra", error: error.message });
+    }
+});
+
+// Obter Histórico de Compras de um Usuário
+app.get("/users/:userId/purchases", async (req: Request, res: Response) => {
+    try {
+        const userId = parseInt(req.params.userId, 10);
+
+        if (isNaN(userId)) {
+            return res.status(400).json({ message: "ID de usuário inválido." });
+        }
+        
+        // Chama o método do repositório
+        const purchases = await purchaseRepository.getPurchasesByUserId(userId);
+        
+        if (!purchases || purchases.length === 0) {
+            return res.status(404).json({ message: "Nenhuma compra encontrada para este usuário." });
+        }
+
+        return res.json(purchases);
+
+    } catch (error: any) {
+        console.error("Erro ao obter histórico de compras:", error);
+        return res
+            .status(500)
+            .json({ message: "Erro interno ao obter o histórico de compras", error: error.message });
+    }
+});
+
+// Obter Histórico de Vendas de um Vendedor
+// Rota: GET /users/:userId/sales
+app.get("/users/:userId/sales", async (req: Request, res: Response) => {
+    try {
+        const sellerId = parseInt(req.params.userId, 10);
+
+        if (isNaN(sellerId)) {
+            return res.status(400).json({ message: "ID de usuário inválido." });
+        }
+        
+        const sales = await saleRepository.getSalesBySellerId(sellerId);
+        
+        if (!sales || sales.length === 0) {
+            return res.status(404).json({ message: "Nenhuma venda encontrada para este usuário." });
+        }
+
+        return res.json(sales);
+
+    } catch (error: any) {
+        console.error("Erro ao obter histórico de vendas:", error);
+        return res
+            .status(500)
+            .json({ message: "Erro interno ao obter o histórico de vendas", error: error.message });
     }
 });
 

@@ -29,6 +29,7 @@ export class Product
   public stock!: number;
   public description!: string;
   public readonly User?: User;
+  public readonly seller?: User;
   public readonly CartItems?: CartItem[];
 }
 

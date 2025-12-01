@@ -4,6 +4,8 @@ import { Cart } from './Cart';
 import CartItem from './CartItem';
 import Purchase from './Purchase';
 import PurchaseItem from './PurchaseItem';
+import Sale from './Sale';
+import SaleItem from './SaleItem';
 
 // Um Usuário pode ter muitos Produtos.
 User.hasMany(Product, {
@@ -82,4 +84,30 @@ PurchaseItem.belongsTo(Purchase, {
     as: 'purchase'
 });
 
-export { User, Product, Cart, CartItem, Purchase, PurchaseItem };
+// Um Usuário pode ter muitas Vendas
+User.hasMany(Sale, {
+    foreignKey: 'sellerId', // Usa sellerId na tabela Sale
+    as: 'salesHistory',       
+    onDelete: 'CASCADE'   
+});
+
+// Um Registro de Venda pertence a um único Usuário
+Sale.belongsTo(User, {
+    foreignKey: 'sellerId', 
+    as: 'seller'           
+});
+
+// Um Registro de Venda tem muitos Itens de Venda
+Sale.hasMany(SaleItem, {
+    foreignKey: 'saleId',
+    as: 'soldItems',
+    onDelete: 'CASCADE'
+});
+
+// Um Item de Venda pertence a um único Registro de Venda
+SaleItem.belongsTo(Sale, {
+    foreignKey: 'saleId',
+    as: 'sale'
+});
+
+export { User, Product, Cart, CartItem, Purchase, PurchaseItem, Sale, SaleItem };

@@ -58,3 +58,14 @@ Content-Type: application/json
 # Rota: POST /checkout/:userId
 POST http://localhost:3000/checkout/1 
 Content-Type: application/json
+
+### 9. Obter Histórico de Compras (GET)
+# Rota: GET /users/:userId/purchases
+# @name getUserPurchases
+GET http://localhost:3000/users/1/purchases
+
+### 10. Obter Histórico de Vendas (GET)
+# Rota: GET /users/:userId/sales
+# @name getUserSales
+# Substitua '1' pelo ID do usuário que vendeu os produtos.
+GET http://localhost:3000/users/1/sales
