@@ -31,6 +31,24 @@ export class ProductRepository {
   async deleteProduct(id: number) {
     return await Product.destroy({ where: { id } });
   }
+
+  // Atualiza o estoque
+  async updateStock(productId: number, newStock: number) {
+        // Validação básica para evitar estoque negativo fora de uma transação de compra
+        if (newStock < 0) {
+            throw new Error("O estoque não pode ser negativo.");
+        }
+        
+        // Usa o método update do Sequelize
+        const [affectedCount] = await Product.update(
+            { stock: newStock },
+            { 
+                where: { id: productId } 
+            }
+        );
+
+        return affectedCount;
+    }
 }
 
 export default new ProductRepository();

@@ -69,3 +69,18 @@ GET http://localhost:3000/users/1/purchases
 # @name getUserSales
 # Substitua '1' pelo ID do usuário que vendeu os produtos.
 GET http://localhost:3000/users/1/sales
+
+### 11. Deletar Produto (DELETE)
+# Rota: DELETE /products/:id
+# @name deleteProduct
+DELETE http://localhost:3000/products/1
+
+### 12. Atualizar Estoque (PATCH)
+# Rota: PATCH /products/:id/stock
+# Substitua '1' pelo ID do produto que você deseja atualizar.
+PATCH http://localhost:3000/products/1/stock
+Content-Type: application/json
+
+{
+  "stock": 50 
+}

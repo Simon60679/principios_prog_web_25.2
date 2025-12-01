@@ -87,6 +87,85 @@ app.post("/products", async (req: Request, res: Response) => {
     }
 });
 
+// Atualizar Estoque de Produto
+// Rota: PATCH /products/:id/stock
+app.patch("/products/:id/stock", async (req: Request, res: Response) => {
+    try {
+        const productId = parseInt(req.params.id, 10);
+        const { stock: newStock } = req.body; // Pega o novo valor do corpo da requisição
+
+        if (isNaN(productId) || typeof newStock !== 'number' || newStock === null) {
+            return res.status(400).json({ 
+                message: "Dados inválidos. O ID do produto e o novo valor de 'stock' devem ser números." 
+            });
+        }
+        
+        // Chama o método do repositório
+        const affectedRows = await productRepository.updateStock(productId, newStock);
+        
+        if (affectedRows === 0) {
+            return res.status(404).json({ message: "Produto não encontrado." });
+        }
+
+        // Se a atualização for bem-sucedida, você pode retornar o produto atualizado
+        const updatedProduct = await productRepository.findProductById(productId);
+
+        return res.status(200).json({ 
+            message: `Estoque do produto ${productId} atualizado para ${newStock}.`,
+            product: updatedProduct
+        });
+
+    } catch (error: any) {
+        console.error("Erro ao atualizar estoque:", error);
+        
+        // Retorna 400 se a validação básica do repositório falhar (estoque negativo)
+        if (error.message.includes("O estoque não pode ser negativo")) {
+            return res.status(400).json({ message: error.message });
+        }
+
+        return res
+            .status(500)
+            .json({ message: "Erro interno ao atualizar estoque", error: error.message });
+    }
+});
+
+// Deletar um Produto por ID
+app.delete("/products/:id", async (req: Request, res: Response) => {
+    try {
+        const productId = parseInt(req.params.id, 10);
+
+        if (isNaN(productId)) {
+            return res.status(400).json({ message: "ID de produto inválido." });
+        }
+        
+        // Chama o método do repositório
+        const deletedRows = await productRepository.deleteProduct(productId);
+        
+        if (deletedRows === 0) {
+            return res.status(404).json({ message: "Produto não encontrado ou já deletado." });
+        }
+
+        return res.status(200).json({ 
+            message: `Produto com ID ${productId} deletado com sucesso.`,
+            deletedCount: deletedRows
+        });
+
+    } catch (error: any) {
+        console.error("Erro ao deletar produto:", error);
+        
+        if (error.name === 'SequelizeForeignKeyConstraintError') {
+             return res.status(409).json({
+                message: "Não é possível deletar este produto, pois ele está ligado a um ou mais carrinhos de clientes ativos. Limpe as dependências primeiro ou configure CASCADE.",
+                error: error.message
+            });
+        }
+        
+        return res
+            .status(500)
+            .json({ message: "Erro interno ao deletar produto", error: error.message });
+    }
+});
+
 // Rota para listar produtos
 app.get("/products", async (req: Request, res: Response) => {
   try {

@@ -55,7 +55,12 @@ Cart.hasMany(CartItem, { foreignKey: 'cartId', as: 'items' });
 CartItem.belongsTo(Cart, { foreignKey: 'cartId' });
 
 // Product pode incluir CartItem diretamente
-Product.hasMany(CartItem, { foreignKey: 'productId', as: 'cartLink' });
+Product.hasMany(CartItem, { 
+    foreignKey: 'productId', 
+    as: 'cartLink',
+    onDelete: 'CASCADE'
+});
+
 CartItem.belongsTo(Product, { foreignKey: 'productId', as: 'product' });
 
 // Um Usuário tem muitos Registros de Compra
