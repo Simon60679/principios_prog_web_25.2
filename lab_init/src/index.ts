@@ -17,6 +17,7 @@ app.use(express.json());
 // --- ROTAS DO USUÁRIO ---
 app.post("/users", userController.createUser);
 app.get("/users", userController.getAllUsers);
+app.patch("/users/:id", userController.updateUser);
 app.delete("/users/:id", userController.deleteUser);
 
 // --- ROTAS DE PRODUTO ---

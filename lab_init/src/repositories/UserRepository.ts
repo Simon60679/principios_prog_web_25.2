@@ -1,4 +1,5 @@
 import User, { UserCreationAttributes } from "../models/User";
+import { UserAttributes } from "../models/User";
 import Cart from "../models/Cart";
 import cartRepository from "./CartRepository";
 import sequelize from "../config/database";
@@ -46,6 +47,18 @@ export class UserRepository {
   async deleteUser(id: number) {
     return await User.destroy({ where: { id } });
   }
+
+  async updateUser(id: number, dataToUpdate: Partial<UserAttributes>) {
+        
+        // Remove 'id' e 'password' para evitar atualização acidental caso tenham sido passados.
+        delete dataToUpdate.id;
+
+        const [affectedRows] = await User.update(dataToUpdate, {
+            where: { id: id }
+        });
+
+        return affectedRows;
+    }
 }
 
 export default new UserRepository();

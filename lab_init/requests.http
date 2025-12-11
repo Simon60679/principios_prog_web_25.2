@@ -99,3 +99,13 @@ Content-Type: application/json
 {
   "quantity": 2 
 }
+
+### 15. Atualizar Dados de Usuário (PATCH)
+# Atualiza o nome e o email do Usuário de ID 1
+PATCH http://localhost:3000/users/1
+Content-Type: application/json
+
+{
+  "name": "Robert Robertson",
+  "email": "bob.bobby@example.com"
+}
