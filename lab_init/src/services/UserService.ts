@@ -1,11 +1,11 @@
-import userRepository from "../repositories/UserRepository";
+import userRepository from "../repository/UserRepository";
 import { UserAttributes } from "../models/User";
 
 class UserService {
     async createUser(data: { name: string, email: string, password: string }) {
         // Validação de regras de negócio (ex: verificar se o email já existe)
         // ...
-        
+
         return await userRepository.createUser(data);
     }
 
@@ -23,7 +23,7 @@ class UserService {
     }
 
     async updateUser(id: number, dataToUpdate: Partial<UserAttributes>) {
-        
+
         // 1. Verificar se o usuário existe
         const userExists = await userRepository.findUserById(id);
         if (!userExists) {
@@ -36,9 +36,9 @@ class UserService {
             // Retorna o usuário completo e atualizado
             return await userRepository.findUserById(id);
         }
-        
+
         // Se affectedRows for 0 (mas o usuário existe), significa que os dados enviados eram os mesmos
-        return userExists; 
+        return userExists;
     }
 }
 

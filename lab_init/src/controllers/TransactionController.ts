@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import purchaseService from "../services/PurchaseService";
-import saleRepository from "../repositories/SaleRepository"; // Usaremos o repositório diretamente aqui
+import saleRepository from "../repository/SaleRepository"; // Usaremos o repositório diretamente aqui
 
 class TransactionController {
     async checkout(req: Request, res: Response) {

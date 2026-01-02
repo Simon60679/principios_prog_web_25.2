@@ -1,4 +1,4 @@
-import purchaseRepository from "../repositories/PurchaseRepository";
+import purchaseRepository from "../repository/PurchaseRepository";
 
 class PurchaseService {
     async finalizePurchase(userId: number) {

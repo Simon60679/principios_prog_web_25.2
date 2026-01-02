@@ -1,4 +1,4 @@
-import cartRepository from "../repositories/CartRepository";
+import cartRepository from "../repository/CartRepository";
 
 class CartService {
     async findCartDetails(userId: number) {

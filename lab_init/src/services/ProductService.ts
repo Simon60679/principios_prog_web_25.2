@@ -1,4 +1,4 @@
-import productRepository from "../repositories/ProductRepository";
+import productRepository from "../repository/ProductRepository";
 
 class ProductService {
     async createProduct(data: any) {
