@@ -1,7 +1,7 @@
 {
   "name": "lab_init",
   "version": "1.0.0",
-  "description": "��#\u0000 \u0000l\u0000a\u0000b\u0000_\u0000i\u0000n\u0000i\u0000t\u0000\r\u0000 \u0000",
+  "description": "API do projeto Lab Init Web II",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -17,6 +17,7 @@
     "express": "^5.1.0",
     "mysql2": "^3.15.3",
     "pg": "^8.16.3",
+    "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.7"
   },
   "devDependencies": {
