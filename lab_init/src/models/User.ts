@@ -1,5 +1,6 @@
 import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../config/database";
+import bcrypt from "bcryptjs";
 
 // 1. Atributos que existem na tabela
 export interface UserAttributes {
@@ -50,6 +51,20 @@ User.init(
     sequelize,
     tableName: "users",
     timestamps: false,
+    hooks: {
+      beforeCreate: async (user: User) => {
+        if (user.password) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
+        }
+      },
+      beforeUpdate: async (user: User) => {
+        if (user.changed("password")) {
+          const salt = await bcrypt.genSalt(10);
+          user.password = await bcrypt.hash(user.password, salt);
+        }
+      },
+    },
   }
 );
 
