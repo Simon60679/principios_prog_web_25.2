@@ -15,13 +15,12 @@ export interface ProductAttributes {
 
 // 2. Atributos necessários para criar (id é auto incremento)
 export interface ProductCreationAttributes
-  extends Optional<ProductAttributes, "id" | "stock"> {}
+  extends Optional<ProductAttributes, "id" | "stock"> { }
 
 // 3. Classe do modelo
 export class Product
   extends Model<ProductAttributes, ProductCreationAttributes>
-  implements ProductAttributes
-{
+  implements ProductAttributes {
   public id!: number;
   public userId!: number;
   public name!: string;
@@ -54,7 +53,7 @@ Product.init(
       allowNull: false,
     },
     price: {
-      type: DataTypes.DECIMAL,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
     stock: {
