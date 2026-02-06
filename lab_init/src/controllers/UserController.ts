@@ -14,6 +14,12 @@ class UserController {
             return res.status(201).json(user);
         } catch (error: any) {
             console.error("Erro ao criar usuário:", error);
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                return res.status(409).json({ message: "Este email já está cadastrado." });
+            }
+            if (error.name === 'SequelizeValidationError') {
+                return res.status(400).json({ message: "Erro de validação", errors: error.errors.map((e: any) => e.message) });
+            }
             return res.status(500).json({ message: "Erro ao criar o usuário", error: error.message });
         }
     }
@@ -50,7 +56,7 @@ class UserController {
     async updateUser(req: Request, res: Response) {
         try {
             const id = parseInt(req.params.id, 10);
-            const dataToUpdate: Partial<UserAttributes> = req.body; 
+            const dataToUpdate: Partial<UserAttributes> = req.body;
 
             if (isNaN(id)) {
                 return res.status(400).json({ message: "ID de usuário inválido." });
@@ -60,16 +66,16 @@ class UserController {
             if (Object.keys(dataToUpdate).length === 0) {
                 return res.status(400).json({ message: "Corpo da requisição vazio. Forneça dados para atualização." });
             }
-            
+
             const updatedUser = await userService.updateUser(id, dataToUpdate);
 
             if (updatedUser === null) {
                 return res.status(404).json({ message: "Usuário não encontrado." });
             }
 
-            return res.status(200).json({ 
-                message: "Dados do usuário atualizados com sucesso.", 
-                user: updatedUser 
+            return res.status(200).json({
+                message: "Dados do usuário atualizados com sucesso.",
+                user: updatedUser
             });
 
         } catch (error: any) {
