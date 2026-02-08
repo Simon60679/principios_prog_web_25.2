@@ -48,6 +48,48 @@ describe("ProductService", () => {
 
             expect(result).toEqual(mockProducts);
         });
+
+        it("deve retornar uma lista vazia se não houver produtos cadastrados", async () => {
+            productRepositoryMock.getAllProducts.mockResolvedValue([]);
+
+            const result = await productService.getAllProducts();
+
+            expect(result).toEqual([]);
+        });
+
+        it("deve propagar erro se o repositório falhar", async () => {
+            const error = new Error("Erro de conexão");
+            productRepositoryMock.getAllProducts.mockRejectedValue(error);
+
+            await expect(productService.getAllProducts()).rejects.toThrow("Erro de conexão");
+        });
+    });
+
+    describe("findProductById", () => {
+        it("deve retornar o produto quando encontrado", async () => {
+            const mockProduct = { id: 1, name: "Produto Teste" };
+            productRepositoryMock.findProductById.mockResolvedValue(mockProduct as any);
+
+            const result = await productService.findProductById(1);
+
+            expect(productRepositoryMock.findProductById).toHaveBeenCalledWith(1);
+            expect(result).toEqual(mockProduct);
+        });
+
+        it("deve retornar null se o produto não for encontrado", async () => {
+            productRepositoryMock.findProductById.mockResolvedValue(null);
+
+            const result = await productService.findProductById(999);
+
+            expect(result).toBeNull();
+        });
+
+        it("deve propagar erro se o repositório falhar", async () => {
+            const error = new Error("Erro de conexão");
+            productRepositoryMock.findProductById.mockRejectedValue(error);
+
+            await expect(productService.findProductById(1)).rejects.toThrow("Erro de conexão");
+        });
     });
 
     describe("updateStock", () => {
@@ -81,6 +123,43 @@ describe("ProductService", () => {
             productRepositoryMock.updateStock.mockRejectedValue(error);
 
             await expect(productService.updateStock(1, -5)).rejects.toThrow("O estoque não pode ser negativo.");
+        });
+
+        it("deve retornar null se o produto for deletado logo após a atualização de estoque (concorrência)", async () => {
+            productRepositoryMock.updateStock.mockResolvedValue(1); // Update diz que alterou 1 linha
+            productRepositoryMock.findProductById.mockResolvedValue(null); // Mas o produto sumiu antes do select
+
+            const result = await productService.updateStock(1, 10);
+
+            expect(result).toBeNull();
+        });
+
+        it("deve propagar erro se falhar ao buscar o produto atualizado (após o update)", async () => {
+            const error = new Error("Erro ao buscar atualizado");
+
+            productRepositoryMock.updateStock.mockResolvedValue(1); // Update ok
+            productRepositoryMock.findProductById.mockRejectedValue(error); // Busca falha
+
+            await expect(productService.updateStock(1, 10)).rejects.toThrow("Erro ao buscar atualizado");
+        });
+
+        it("deve garantir que a busca do produto ocorre APÓS a atualização do estoque", async () => {
+            productRepositoryMock.updateStock.mockResolvedValue(1);
+            productRepositoryMock.findProductById.mockResolvedValue({ id: 1, stock: 10 } as any);
+
+            await productService.updateStock(1, 10);
+
+            const updateOrder = productRepositoryMock.updateStock.mock.invocationCallOrder[0];
+            const findOrder = productRepositoryMock.findProductById.mock.invocationCallOrder[0];
+
+            expect(updateOrder).toBeLessThan(findOrder);
+        });
+
+        it("não deve tentar buscar o produto se a atualização falhar", async () => {
+            productRepositoryMock.updateStock.mockRejectedValue(new Error("Falha no update"));
+
+            await expect(productService.updateStock(1, 10)).rejects.toThrow("Falha no update");
+            expect(productRepositoryMock.findProductById).not.toHaveBeenCalled();
         });
     });
 
