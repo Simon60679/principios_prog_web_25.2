@@ -43,7 +43,7 @@ describe("CartService", () => {
         it("deve adicionar um item ao carrinho com sucesso", async () => {
             const itemData = { userId: 1, productId: 10, quantity: 2 };
             const mockAddedItem = { ...itemData, id: 1 };
-            
+
             cartRepositoryMock.addItemToCart.mockResolvedValue(mockAddedItem as any);
 
             const result = await cartService.addItemToCart(itemData);
