@@ -2,7 +2,7 @@ import userService from "../../../src/services/UserService";
 import userRepository from "../../../src/repository/UserRepository";
 
 // Mock do UserRepository para não acessar o banco de dados real
-jest.mock("../repository/UserRepository");
+jest.mock("../../../src/repository/UserRepository");
 
 // Cria uma versão tipada do mock. Isso habilita o autocompletar e verifica se os métodos existem.
 const userRepositoryMock = jest.mocked(userRepository);
@@ -67,6 +67,14 @@ describe("UserService", () => {
 
             await expect(userService.getAllUsers()).rejects.toThrow("Erro de conexão com o banco");
         });
+
+        it("deve retornar uma lista vazia se não houver usuários cadastrados", async () => {
+            userRepositoryMock.getAllUsers.mockResolvedValue([]);
+
+            const result = await userService.getAllUsers();
+
+            expect(result).toEqual([]);
+        });
     });
 
     describe("deleteUser", () => {
@@ -103,6 +111,15 @@ describe("UserService", () => {
             userRepositoryMock.findUserById.mockRejectedValue(error);
 
             await expect(userService.deleteUser(1)).rejects.toThrow("Erro de conexão ao buscar");
+        });
+
+        it("deve retornar true mesmo que o repositório retorne 0 linhas afetadas (concorrência)", async () => {
+            userRepositoryMock.findUserById.mockResolvedValue({ id: 1 } as any);
+            userRepositoryMock.deleteUser.mockResolvedValue(0);
+
+            const result = await userService.deleteUser(1);
+
+            expect(result).toBe(true);
         });
     });
 
@@ -146,6 +163,17 @@ describe("UserService", () => {
             expect(result).toEqual(existingUser);
         });
 
+        it("deve retornar o usuário original se o objeto de atualização estiver vazio", async () => {
+            const existingUser = { id: 1, name: "Original" };
+
+            userRepositoryMock.findUserById.mockResolvedValue(existingUser as any);
+            userRepositoryMock.updateUser.mockResolvedValue(0);
+
+            const result = await userService.updateUser(1, {});
+
+            expect(result).toEqual(existingUser);
+        });
+
         it("deve propagar erro se o repositório falhar ao atualizar", async () => {
             userRepositoryMock.findUserById.mockResolvedValue({ id: 1, name: "Antigo" } as any);
             const error = new Error("Erro no update");
@@ -159,6 +187,33 @@ describe("UserService", () => {
             userRepositoryMock.findUserById.mockRejectedValue(error);
 
             await expect(userService.updateUser(1, { name: "Novo" })).rejects.toThrow("Erro de conexão");
+        });
+
+        it("deve propagar erro se falhar ao buscar o usuário atualizado (após o update)", async () => {
+            const existingUser = { id: 1, name: "Antigo" };
+            const error = new Error("Erro ao buscar atualizado");
+
+            userRepositoryMock.findUserById
+                .mockResolvedValueOnce(existingUser as any) // 1. Encontra o usuário na verificação
+                .mockRejectedValueOnce(error);              // 2. Falha ao buscar o usuário atualizado
+
+            userRepositoryMock.updateUser.mockResolvedValue(1); // Atualiza com sucesso
+
+            await expect(userService.updateUser(1, { name: "Novo" })).rejects.toThrow("Erro ao buscar atualizado");
+        });
+
+        it("deve retornar null se o usuário for deletado logo após a atualização (concorrência)", async () => {
+            const existingUser = { id: 1, name: "Antigo" };
+
+            userRepositoryMock.findUserById
+                .mockResolvedValueOnce(existingUser as any) // 1. Encontra antes do update
+                .mockResolvedValueOnce(null);               // 2. Não encontra depois do update
+
+            userRepositoryMock.updateUser.mockResolvedValue(1); // Update diz que alterou 1 linha
+
+            const result = await userService.updateUser(1, { name: "Novo" });
+
+            expect(result).toBeNull();
         });
     });
 });
