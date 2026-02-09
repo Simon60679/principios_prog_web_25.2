@@ -5,6 +5,7 @@ import { authenticate } from './middlewares/authMiddleware';
 import authRoutes from './routes/authRoutes';
 import express from "express";
 import sequelize from "./config/database";
+import rateLimit from 'express-rate-limit';
 import './models/associations'; // Importa as associações
 
 // Importa os Controllers
@@ -15,6 +16,20 @@ import transactionController from "./controllers/TransactionController";
 
 const app = express();
 app.use(express.json());
+
+// Configuração do rate limiter
+const globalLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // Janela de 5 minutos
+  max: 10,// Limite de 10 requisições por IP dentro da janela acima
+  message: {
+    message: "Muitas requisições vindas deste IP, tente novamente após 5 minutos."
+  },
+  standardHeaders: true, // Retorna informações de limite nos headers `RateLimit-*`
+  legacyHeaders: false, // Desabilita os headers `X-RateLimit-*`
+});
+
+// Aplicar rate limiter em todas as rotas
+app.use(globalLimiter);
 
 // --- ROTAS DE AUTENTICAÇÃO ---
 app.use("/auth", authRoutes);
