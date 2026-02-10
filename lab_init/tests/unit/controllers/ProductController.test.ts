@@ -1,31 +1,29 @@
+import { expect } from "chai";
+import sinon from "sinon";
 import productController from "../../../src/controllers/ProductController";
 import productService from "../../../src/services/ProductService";
 import { Request, Response } from "express";
-
-// Mock do Service
-jest.mock("../../../src/services/ProductService");
-const productServiceMock = jest.mocked(productService);
 
 describe("ProductController", () => {
     let req: Partial<Request>;
     let res: Partial<Response>;
 
     beforeEach(() => {
-        jest.clearAllMocks();
-        
-        // Resetamos os objetos req e res antes de cada teste
         req = {
             body: {},
             params: {},
-            // Simulando o objeto user que viria do middleware de autenticação
             user: { id: 1 } 
         } as any;
 
         res = {
-            status: jest.fn().mockReturnThis(), // Permite encadear .status().json()
-            json: jest.fn(),
-            send: jest.fn()
+            status: sinon.stub().returnsThis(),
+            json: sinon.stub(),
+            send: sinon.stub()
         } as unknown as Response;
+    });
+
+    afterEach(() => {
+        sinon.restore();
     });
 
     describe("createProduct", () => {
@@ -33,58 +31,58 @@ describe("ProductController", () => {
             req.body = { name: "Prod", price: 10, description: "Desc", stock: 5 };
             const mockProduct = { id: 1, ...req.body };
             
-            productServiceMock.createProduct.mockResolvedValue(mockProduct);
+            const createStub = sinon.stub(productService, "createProduct").resolves(mockProduct as any);
 
             await productController.createProduct(req as Request, res as Response);
 
-            expect(productServiceMock.createProduct).toHaveBeenCalledWith({
+            expect(createStub.calledWith({
                 ...req.body,
                 userId: 1
-            });
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith(mockProduct);
+            })).to.be.true;
+            expect((res.status as sinon.SinonStub).calledWith(201)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(mockProduct)).to.be.true;
         });
 
         it("deve retornar 400 se campos obrigatórios estiverem faltando", async () => {
             req.body = { name: "Prod" }; // Faltando price e description
+            const createStub = sinon.stub(productService, "createProduct");
 
             await productController.createProduct(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ 
+            expect((res.status as sinon.SinonStub).calledWith(400)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ 
                 message: "Nome, preço e descrição são obrigatórios." 
-            }));
-            expect(productServiceMock.createProduct).not.toHaveBeenCalled();
+            }))).to.be.true;
+            expect(createStub.called).to.be.false;
         });
 
         it("deve retornar 500 se o serviço falhar", async () => {
             req.body = { name: "Prod", price: 10, description: "Desc" };
-            productServiceMock.createProduct.mockRejectedValue(new Error("Erro interno"));
+            sinon.stub(productService, "createProduct").rejects(new Error("Erro interno"));
 
             await productController.createProduct(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(500);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Erro ao criar o produto" }));
+            expect((res.status as sinon.SinonStub).calledWith(500)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: "Erro ao criar o produto" }))).to.be.true;
         });
     });
 
     describe("getAllProducts", () => {
         it("deve retornar 200 e a lista de produtos", async () => {
             const mockProducts = [{ id: 1, name: "P1" }];
-            productServiceMock.getAllProducts.mockResolvedValue(mockProducts as any);
+            sinon.stub(productService, "getAllProducts").resolves(mockProducts as any);
 
             await productController.getAllProducts(req as Request, res as Response);
 
-            expect(res.json).toHaveBeenCalledWith(mockProducts);
-            // Se não chamamos res.status(), o padrão do Express é 200, então ok não verificar explicitamente se o código não faz
+            expect((res.json as sinon.SinonStub).calledWith(mockProducts)).to.be.true;
         });
 
         it("deve retornar 500 em caso de erro", async () => {
-            productServiceMock.getAllProducts.mockRejectedValue(new Error("Erro"));
+            sinon.stub(productService, "getAllProducts").rejects(new Error("Erro"));
 
             await productController.getAllProducts(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(500);
+            expect((res.status as sinon.SinonStub).calledWith(500)).to.be.true;
         });
     });
 
@@ -94,75 +92,76 @@ describe("ProductController", () => {
             req.body = { stock: 50 };
             const mockProduct = { id: 1, stock: 50 };
             
-            productServiceMock.updateStock.mockResolvedValue(mockProduct as any);
+            const updateStub = sinon.stub(productService, "updateStock").resolves(mockProduct as any);
 
             await productController.updateStock(req as Request, res as Response);
 
-            expect(productServiceMock.updateStock).toHaveBeenCalledWith(1, 50);
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ product: mockProduct }));
+            expect(updateStub.calledWith(1, 50)).to.be.true;
+            expect((res.status as sinon.SinonStub).calledWith(200)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ product: mockProduct }))).to.be.true;
         });
 
         it("deve retornar 400 se o ID ou stock forem inválidos", async () => {
             req.params = { id: "abc" }; // ID inválido
             req.body = { stock: 50 };
+            const updateStub = sinon.stub(productService, "updateStock");
 
             await productController.updateStock(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(productServiceMock.updateStock).not.toHaveBeenCalled();
+            expect((res.status as sinon.SinonStub).calledWith(400)).to.be.true;
+            expect(updateStub.called).to.be.false;
         });
 
         it("deve retornar 404 se o produto não for encontrado", async () => {
             req.params = { id: "1" };
             req.body = { stock: 50 };
-            productServiceMock.updateStock.mockResolvedValue(null);
+            sinon.stub(productService, "updateStock").resolves(null);
 
             await productController.updateStock(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(404);
+            expect((res.status as sinon.SinonStub).calledWith(404)).to.be.true;
         });
 
         it("deve retornar 400 se o serviço lançar erro de estoque negativo", async () => {
             req.params = { id: "1" };
             req.body = { stock: -5 };
-            productServiceMock.updateStock.mockRejectedValue(new Error("O estoque não pode ser negativo"));
+            sinon.stub(productService, "updateStock").rejects(new Error("O estoque não pode ser negativo"));
 
             await productController.updateStock(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("negativo") }));
+            expect((res.status as sinon.SinonStub).calledWith(400)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: sinon.match("negativo") }))).to.be.true;
         });
     });
 
     describe("deleteProduct", () => {
         it("deve retornar 200 se deletado com sucesso", async () => {
             req.params = { id: "1" };
-            productServiceMock.deleteProduct.mockResolvedValue(true);
+            sinon.stub(productService, "deleteProduct").resolves(true);
 
             await productController.deleteProduct(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(200);
+            expect((res.status as sinon.SinonStub).calledWith(200)).to.be.true;
         });
 
         it("deve retornar 404 se não encontrado", async () => {
             req.params = { id: "1" };
-            productServiceMock.deleteProduct.mockResolvedValue(false);
+            sinon.stub(productService, "deleteProduct").resolves(false);
 
             await productController.deleteProduct(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(404);
+            expect((res.status as sinon.SinonStub).calledWith(404)).to.be.true;
         });
 
         it("deve retornar 409 se houver erro de chave estrangeira (FK)", async () => {
             req.params = { id: "1" };
             const error = new Error("FK Error");
             error.name = "SequelizeForeignKeyConstraintError";
-            productServiceMock.deleteProduct.mockRejectedValue(error);
+            sinon.stub(productService, "deleteProduct").rejects(error);
 
             await productController.deleteProduct(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(409);
+            expect((res.status as sinon.SinonStub).calledWith(409)).to.be.true;
         });
     });
 });
