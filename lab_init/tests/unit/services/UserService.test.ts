@@ -1,21 +1,15 @@
+import { expect } from "chai";
+import sinon from "sinon";
 import userService from "../../../src/services/UserService";
 import userRepository from "../../../src/repository/UserRepository";
 
-// Mock do UserRepository para não acessar o banco de dados real
-jest.mock("../../../src/repository/UserRepository");
-
-// Cria uma versão tipada do mock. Isso habilita o autocompletar e verifica se os métodos existem.
-const userRepositoryMock = jest.mocked(userRepository);
-
 describe("UserService", () => {
-    // Limpa os mocks antes de cada teste
-    beforeEach(() => {
-        jest.clearAllMocks();
+    afterEach(() => {
+        sinon.restore();
     });
 
     describe("createUser", () => {
         it("deve criar um usuário com sucesso", async () => {
-            // Arrange (Preparação)
             const userData = {
                 name: "Teste Unitario",
                 email: "teste@unitario.com",
@@ -25,195 +19,228 @@ describe("UserService", () => {
             const mockCreatedUser = {
                 id: 1,
                 ...userData,
-                cart: { userId: 1, items: [] }, // Reflete a estrutura real retornada pelo repositório (com carrinho)
-                // Simulando o retorno que viria do banco (senha hasheada, etc)
+                cart: { userId: 1, items: [] },
             };
 
-            // Ensinamos o mock a retornar o valor esperado quando a função for chamada
-            userRepositoryMock.createUser.mockResolvedValue(mockCreatedUser as any);
+            const createStub = sinon.stub(userRepository, "createUser").resolves(mockCreatedUser as any);
 
-            // Act (Ação)
             const result = await userService.createUser(userData);
 
-            // Assert (Verificação)
-            expect(userRepositoryMock.createUser).toHaveBeenCalledWith(userData);
-            expect(result).toEqual(mockCreatedUser);
+            expect(createStub.calledWith(userData)).to.be.true;
+            expect(result).to.deep.equal(mockCreatedUser);
         });
 
         it("deve propagar erro se o repositório falhar", async () => {
             const userData = { name: "Erro", email: "erro@teste.com", password: "123" };
             const error = new Error("Erro de banco de dados");
 
-            userRepositoryMock.createUser.mockRejectedValue(error);
+            sinon.stub(userRepository, "createUser").rejects(error);
 
-            await expect(userService.createUser(userData)).rejects.toThrow("Erro de banco de dados");
+            try {
+                await userService.createUser(userData);
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro de banco de dados");
+            }
         });
     });
 
     describe("getAllUsers", () => {
         it("deve retornar uma lista de usuários", async () => {
             const mockUsers = [{ id: 1, name: "User 1" }, { id: 2, name: "User 2" }];
-            userRepositoryMock.getAllUsers.mockResolvedValue(mockUsers as any);
+            const getAllStub = sinon.stub(userRepository, "getAllUsers").resolves(mockUsers as any);
 
             const result = await userService.getAllUsers();
 
-            expect(userRepositoryMock.getAllUsers).toHaveBeenCalled();
-            expect(result).toEqual(mockUsers);
+            expect(getAllStub.called).to.be.true;
+            expect(result).to.deep.equal(mockUsers);
         });
 
         it("deve propagar erro se o repositório falhar", async () => {
             const error = new Error("Erro de conexão com o banco");
-            userRepositoryMock.getAllUsers.mockRejectedValue(error);
+            sinon.stub(userRepository, "getAllUsers").rejects(error);
 
-            await expect(userService.getAllUsers()).rejects.toThrow("Erro de conexão com o banco");
+            try {
+                await userService.getAllUsers();
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro de conexão com o banco");
+            }
         });
 
         it("deve retornar uma lista vazia se não houver usuários cadastrados", async () => {
-            userRepositoryMock.getAllUsers.mockResolvedValue([]);
+            sinon.stub(userRepository, "getAllUsers").resolves([]);
 
             const result = await userService.getAllUsers();
 
-            expect(result).toEqual([]);
+            expect(result).to.deep.equal([]);
         });
     });
 
     describe("deleteUser", () => {
         it("deve retornar false se o usuário não existir", async () => {
-            // Simula que o usuário não foi encontrado
-            userRepositoryMock.findUserById.mockResolvedValue(null);
+            const findStub = sinon.stub(userRepository, "findUserById").resolves(null);
+            const deleteStub = sinon.stub(userRepository, "deleteUser");
 
             const result = await userService.deleteUser(999);
 
-            expect(userRepositoryMock.findUserById).toHaveBeenCalledWith(999);
-            expect(userRepositoryMock.deleteUser).not.toHaveBeenCalled(); // Não deve tentar deletar
-            expect(result).toBe(false);
+            expect(findStub.calledWith(999)).to.be.true;
+            expect(deleteStub.called).to.be.false;
+            expect(result).to.be.false;
         });
 
         it("deve deletar e retornar true se o usuário existir", async () => {
-            userRepositoryMock.findUserById.mockResolvedValue({ id: 1, name: "User" } as any);
+            sinon.stub(userRepository, "findUserById").resolves({ id: 1, name: "User" } as any);
+            const deleteStub = sinon.stub(userRepository, "deleteUser").resolves(1);
 
             const result = await userService.deleteUser(1);
 
-            expect(userRepositoryMock.deleteUser).toHaveBeenCalledWith(1);
-            expect(result).toBe(true);
+            expect(deleteStub.calledWith(1)).to.be.true;
+            expect(result).to.be.true;
         });
 
         it("deve propagar erro se o repositório falhar ao deletar", async () => {
-            userRepositoryMock.findUserById.mockResolvedValue({ id: 1 } as any);
+            sinon.stub(userRepository, "findUserById").resolves({ id: 1 } as any);
             const error = new Error("Erro ao deletar");
-            userRepositoryMock.deleteUser.mockRejectedValue(error);
+            sinon.stub(userRepository, "deleteUser").rejects(error);
 
-            await expect(userService.deleteUser(1)).rejects.toThrow("Erro ao deletar");
+            try {
+                await userService.deleteUser(1);
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro ao deletar");
+            }
         });
 
         it("deve propagar erro se falhar ao buscar o usuário (etapa de verificação)", async () => {
             const error = new Error("Erro de conexão ao buscar");
-            userRepositoryMock.findUserById.mockRejectedValue(error);
+            sinon.stub(userRepository, "findUserById").rejects(error);
 
-            await expect(userService.deleteUser(1)).rejects.toThrow("Erro de conexão ao buscar");
+            try {
+                await userService.deleteUser(1);
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro de conexão ao buscar");
+            }
         });
 
         it("deve retornar true mesmo que o repositório retorne 0 linhas afetadas (concorrência)", async () => {
-            userRepositoryMock.findUserById.mockResolvedValue({ id: 1 } as any);
-            userRepositoryMock.deleteUser.mockResolvedValue(0);
+            sinon.stub(userRepository, "findUserById").resolves({ id: 1 } as any);
+            sinon.stub(userRepository, "deleteUser").resolves(0);
 
             const result = await userService.deleteUser(1);
 
-            expect(result).toBe(true);
+            expect(result).to.be.true;
         });
     });
 
     describe("updateUser", () => {
         it("deve retornar null se o usuário não existir", async () => {
-            userRepositoryMock.findUserById.mockResolvedValue(null);
+            const findStub = sinon.stub(userRepository, "findUserById").resolves(null);
+            const updateStub = sinon.stub(userRepository, "updateUser");
 
             const result = await userService.updateUser(999, { name: "Novo Nome" });
 
-            expect(userRepositoryMock.findUserById).toHaveBeenCalledWith(999);
-            expect(userRepositoryMock.updateUser).not.toHaveBeenCalled();
-            expect(result).toBeNull();
+            expect(findStub.calledWith(999)).to.be.true;
+            expect(updateStub.called).to.be.false;
+            expect(result).to.be.null;
         });
 
         it("deve atualizar e retornar o usuário atualizado se houver mudanças", async () => {
             const existingUser = { id: 1, name: "Antigo" };
             const updatedUser = { id: 1, name: "Novo" };
 
-            userRepositoryMock.findUserById
-                .mockResolvedValueOnce(existingUser as any) // Primeira chamada: verifica existência
-                .mockResolvedValueOnce(updatedUser as any); // Segunda chamada: retorna atualizado
+            const findStub = sinon.stub(userRepository, "findUserById");
+            findStub.onFirstCall().resolves(existingUser as any);
+            findStub.onSecondCall().resolves(updatedUser as any);
 
-            userRepositoryMock.updateUser.mockResolvedValue(1); // 1 linha afetada
+            const updateStub = sinon.stub(userRepository, "updateUser").resolves(1);
 
             const result = await userService.updateUser(1, { name: "Novo" });
 
-            expect(userRepositoryMock.updateUser).toHaveBeenCalledWith(1, { name: "Novo" });
-            expect(result).toEqual(updatedUser);
+            expect(updateStub.calledWith(1, { name: "Novo" })).to.be.true;
+            expect(result).to.deep.equal(updatedUser);
         });
 
         it("deve retornar o usuário original se não houver mudanças", async () => {
             const existingUser = { id: 1, name: "Mesmo Nome" };
 
-            userRepositoryMock.findUserById.mockResolvedValue(existingUser as any);
-            userRepositoryMock.updateUser.mockResolvedValue(0); // 0 linhas afetadas
+            const findStub = sinon.stub(userRepository, "findUserById").resolves(existingUser as any);
+            const updateStub = sinon.stub(userRepository, "updateUser").resolves(0);
 
             const result = await userService.updateUser(1, { name: "Mesmo Nome" });
 
-            expect(userRepositoryMock.updateUser).toHaveBeenCalledWith(1, { name: "Mesmo Nome" });
-            expect(userRepositoryMock.findUserById).toHaveBeenCalledTimes(1); // Não busca novamente
-            expect(result).toEqual(existingUser);
+            expect(updateStub.calledWith(1, { name: "Mesmo Nome" })).to.be.true;
+            expect(findStub.calledOnce).to.be.true;
+            expect(result).to.deep.equal(existingUser);
         });
 
         it("deve retornar o usuário original se o objeto de atualização estiver vazio", async () => {
             const existingUser = { id: 1, name: "Original" };
 
-            userRepositoryMock.findUserById.mockResolvedValue(existingUser as any);
-            userRepositoryMock.updateUser.mockResolvedValue(0);
+            sinon.stub(userRepository, "findUserById").resolves(existingUser as any);
+            sinon.stub(userRepository, "updateUser").resolves(0);
 
             const result = await userService.updateUser(1, {});
 
-            expect(result).toEqual(existingUser);
+            expect(result).to.deep.equal(existingUser);
         });
 
         it("deve propagar erro se o repositório falhar ao atualizar", async () => {
-            userRepositoryMock.findUserById.mockResolvedValue({ id: 1, name: "Antigo" } as any);
+            sinon.stub(userRepository, "findUserById").resolves({ id: 1, name: "Antigo" } as any);
             const error = new Error("Erro no update");
-            userRepositoryMock.updateUser.mockRejectedValue(error);
+            sinon.stub(userRepository, "updateUser").rejects(error);
 
-            await expect(userService.updateUser(1, { name: "Novo" })).rejects.toThrow("Erro no update");
+            try {
+                await userService.updateUser(1, { name: "Novo" });
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro no update");
+            }
         });
 
         it("deve propagar erro se falhar ao verificar existência do usuário", async () => {
             const error = new Error("Erro de conexão");
-            userRepositoryMock.findUserById.mockRejectedValue(error);
+            sinon.stub(userRepository, "findUserById").rejects(error);
 
-            await expect(userService.updateUser(1, { name: "Novo" })).rejects.toThrow("Erro de conexão");
+            try {
+                await userService.updateUser(1, { name: "Novo" });
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro de conexão");
+            }
         });
 
         it("deve propagar erro se falhar ao buscar o usuário atualizado (após o update)", async () => {
             const existingUser = { id: 1, name: "Antigo" };
             const error = new Error("Erro ao buscar atualizado");
 
-            userRepositoryMock.findUserById
-                .mockResolvedValueOnce(existingUser as any) // 1. Encontra o usuário na verificação
-                .mockRejectedValueOnce(error);              // 2. Falha ao buscar o usuário atualizado
+            const findStub = sinon.stub(userRepository, "findUserById");
+            findStub.onFirstCall().resolves(existingUser as any);
+            findStub.onSecondCall().rejects(error);
 
-            userRepositoryMock.updateUser.mockResolvedValue(1); // Atualiza com sucesso
+            sinon.stub(userRepository, "updateUser").resolves(1);
 
-            await expect(userService.updateUser(1, { name: "Novo" })).rejects.toThrow("Erro ao buscar atualizado");
+            try {
+                await userService.updateUser(1, { name: "Novo" });
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro ao buscar atualizado");
+            }
         });
 
         it("deve retornar null se o usuário for deletado logo após a atualização (concorrência)", async () => {
             const existingUser = { id: 1, name: "Antigo" };
 
-            userRepositoryMock.findUserById
-                .mockResolvedValueOnce(existingUser as any) // 1. Encontra antes do update
-                .mockResolvedValueOnce(null);               // 2. Não encontra depois do update
+            const findStub = sinon.stub(userRepository, "findUserById");
+            findStub.onFirstCall().resolves(existingUser as any);
+            findStub.onSecondCall().resolves(null);
 
-            userRepositoryMock.updateUser.mockResolvedValue(1); // Update diz que alterou 1 linha
+            sinon.stub(userRepository, "updateUser").resolves(1);
 
             const result = await userService.updateUser(1, { name: "Novo" });
 
-            expect(result).toBeNull();
+            expect(result).to.be.null;
         });
     });
 });
