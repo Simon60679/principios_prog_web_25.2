@@ -29,7 +29,7 @@ class CartController {
             }
 
             const cartItem = await cartService.addItemToCart({ userId, productId, quantity });
-            return res.status(200).json(cartItem);
+            return res.status(201).json(cartItem);
 
         } catch (error: any) {
             console.error("Erro ao adicionar item ao carrinho:", error);
