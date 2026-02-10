@@ -4,10 +4,8 @@ dotenv.config();
 import { authenticate } from './middlewares/authMiddleware';
 import authRoutes from './routes/authRoutes';
 import express from "express";
-import sequelize from "./config/database";
-import './models/associations'; // Importa as associações
+import './models/associations'; 
 
-// Importa os Controllers
 import userController from "./controllers/UserController";
 import productController from "./controllers/ProductController";
 import cartController from "./controllers/CartController";
@@ -46,16 +44,4 @@ app.post("/checkout/:userId", authenticate, transactionController.checkout);
 app.get("/users/:userId/purchases", authenticate, transactionController.getPurchasesHistory);
 app.get("/users/:userId/sales", authenticate, transactionController.getSalesHistory);
 
-// Sincronizar banco e subir servidor
-const PORT = process.env.PORT || 3000;
-
-sequelize
-    .sync({ force: false })
-    .then(() => {
-        console.log("Banco de dados conectado e sincronizado!");
-        app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
-    })
-    .catch((error) => {
-        console.error("Erro ao conectar ao banco de dados:", error);
-        process.exit(1);
-    });
+export default app;

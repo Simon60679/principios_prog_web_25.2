@@ -4,10 +4,12 @@
   "description": "API do projeto Lab Init Web II",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -r ts-node/register tests/**/*.test.ts",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "mocha -r ts-node/register tests/unit/**/*.test.ts",
+    "test:integration": "mocha -r ts-node/register tests/integration/**/*.test.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc -p tsconfig.build.json",
-    "start": "node dist/index.js"
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -31,9 +33,11 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.10.1",
     "@types/sinon": "^21.0.0",
+    "@types/supertest": "^6.0.2",
     "chai": "^6.2.2",
     "mocha": "^11.7.5",
     "sinon": "^21.0.1",
+    "supertest": "^7.0.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3"
