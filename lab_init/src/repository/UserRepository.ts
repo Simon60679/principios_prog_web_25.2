@@ -1,31 +1,12 @@
 import User, { UserCreationAttributes } from "../models/User";
 import { UserAttributes } from "../models/User";
-import Cart from "../models/Cart";
-import cartRepository from "./CartRepository";
-import sequelize from "../config/database";
+import { Transaction } from "sequelize";
 
 export class UserRepository {
   // Criar um novo usuário
-  async createUser(user: UserCreationAttributes) {
-    const t = await sequelize.transaction();
-
-    try {
-      const newUser = await User.create(user, { transaction: t });
-
-      await cartRepository.createCart({ userId: newUser.id}, { transaction: t });
-
-      await t.commit();
-
-      const userWithCart = await User.findByPk(newUser.id, {
-        include: [{ model: Cart, as: 'cart' }]
-      });
-
-      return userWithCart;
-
-    } catch (error) {
-      await t.rollback(); // Reverte a transação em caso de erro
-      throw error;
-    }
+  // Aceita opções para permitir transações externas
+  async createUser(user: UserCreationAttributes, options?: { transaction?: Transaction }) {
+    return await User.create(user, options);
   }
 
   // Listar todos os usuários

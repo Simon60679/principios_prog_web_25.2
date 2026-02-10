@@ -1,4 +1,4 @@
-import Cart, {CartCreationAttributes} from "../models/Cart";
+import Cart, { CartCreationAttributes } from "../models/Cart";
 import CartItem from "../models/CartItem";
 import Product from "../models/Product";
 import { Transaction } from "sequelize"; // Importe o tipo Transaction (opcional, mas boa prática)
@@ -19,33 +19,38 @@ export class CartRepository {
     // Buscar um carrinho por ID do usuário
     async findCartById(userId: number) {
         return await Cart.findByPk(userId, {
-        // Inclui a tabela intermediária CartItem
-        include: [{ 
-            model: CartItem, 
-            as: 'items',
-            include: [{ 
-                model: Product, 
-                as: 'product',
-                attributes: ['name', 'price']
+            // Inclui a tabela intermediária CartItem
+            include: [{
+                model: CartItem,
+                as: 'items',
+                include: [{
+                    model: Product,
+                    as: 'product',
+                    attributes: ['name', 'price']
+                }],
+                attributes: ['quantity', 'productId']
             }],
-            attributes: ['quantity']
-        }],
             attributes: ['userId']
         });
     }
 
     // Adiciona ou atualiza um item no carrinho
     async addItemToCart({ userId, productId, quantity }: AddItemToCartData, options?: { transaction?: Transaction }) {
-        
-        const cartId = userId; 
+
+        if (quantity <= 0) {
+            throw new Error("A quantidade a adicionar deve ser maior que zero.");
+        }
+
+        const cartId = userId;
 
         // Busca o Produto e seu Estoque
-        const product = await Product.findByPk(productId);
+        // Passamos options para garantir que a leitura participe da transação, se houver
+        const product = await Product.findByPk(productId, options);
 
         if (!product) {
             throw new Error(`Produto com ID ${productId} não encontrado.`);
         }
-        
+
         const currentStock = product.stock;
 
         // Busca o item de carrinho existente
@@ -53,7 +58,7 @@ export class CartRepository {
             where: { cartId: cartId, productId: productId },
             ...options
         });
-        
+
         // Calcula a quantidade total se o item já estiver no carrinho
         const existingQuantity = cartItem ? cartItem.quantity : 0;
         const totalRequestedQuantity = existingQuantity + quantity;
@@ -103,7 +108,7 @@ export class CartRepository {
     }
 
     async decreaseItemQuantity(userId: number, productId: number, quantityToDecrease: number) {
-        
+
         if (quantityToDecrease <= 0) {
             throw new Error("A quantidade a diminuir deve ser maior que zero.");
         }
@@ -115,7 +120,7 @@ export class CartRepository {
         if (!cartItem) {
             return null; // Item não está no carrinho
         }
-        
+
         // 1. Calcula a nova quantidade
         const newQuantity = cartItem.quantity - quantityToDecrease;
 
@@ -129,8 +134,9 @@ export class CartRepository {
             await cartItem.save();
 
             // Opcional: retorna o item com o Produto incluído (para o cliente ver o estado)
-            return await CartItem.findByPk(cartItem.cartId, {
-                 include: [{ model: Product, as: 'product' }]
+            return await CartItem.findOne({
+                where: { cartId: userId, productId: productId },
+                include: [{ model: Product, as: 'product' }]
             });
         }
     }

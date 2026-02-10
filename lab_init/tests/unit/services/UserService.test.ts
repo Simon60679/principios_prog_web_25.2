@@ -2,6 +2,8 @@ import { expect } from "chai";
 import sinon from "sinon";
 import userService from "../../../src/services/UserService";
 import userRepository from "../../../src/repository/UserRepository";
+import cartRepository from "../../../src/repository/CartRepository";
+import sequelize from "../../../src/config/database";
 
 describe("UserService", () => {
     afterEach(() => {
@@ -22,17 +24,31 @@ describe("UserService", () => {
                 cart: { userId: 1, items: [] },
             };
 
+            // Mock da transação do Sequelize
+            const transactionStub = {
+                commit: sinon.stub(),
+                rollback: sinon.stub()
+            };
+            sinon.stub(sequelize, "transaction").resolves(transactionStub as any);
+
             const createStub = sinon.stub(userRepository, "createUser").resolves(mockCreatedUser as any);
+            const createCartStub = sinon.stub(cartRepository, "createCart").resolves();
 
             const result = await userService.createUser(userData);
 
-            expect(createStub.calledWith(userData)).to.be.true;
+            // Verifica se chamou o repositório de usuário E o de carrinho
+            expect(createStub.called).to.be.true;
+            expect(createCartStub.calledWith({ userId: 1 })).to.be.true;
+            expect(transactionStub.commit.called).to.be.true;
             expect(result).to.deep.equal(mockCreatedUser);
         });
 
         it("deve propagar erro se o repositório falhar", async () => {
             const userData = { name: "Erro", email: "erro@teste.com", password: "123" };
             const error = new Error("Erro de banco de dados");
+
+            const transactionStub = { commit: sinon.stub(), rollback: sinon.stub() };
+            sinon.stub(sequelize, "transaction").resolves(transactionStub as any);
 
             sinon.stub(userRepository, "createUser").rejects(error);
 
@@ -41,6 +57,7 @@ describe("UserService", () => {
                 expect.fail("Deveria ter lançado erro");
             } catch (err: any) {
                 expect(err.message).to.equal("Erro de banco de dados");
+                expect(transactionStub.rollback.called).to.be.true;
             }
         });
     });

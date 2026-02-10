@@ -1,12 +1,25 @@
 import userRepository from "../repository/UserRepository";
+import cartRepository from "../repository/CartRepository";
+import sequelize from "../config/database";
 import { UserAttributes } from "../models/User";
 
 class UserService {
     async createUser(data: { name: string, email: string, password: string }) {
-        // Validação de regras de negócio (ex: verificar se o email já existe)
-        // ...
+        const t = await sequelize.transaction();
 
-        return await userRepository.createUser(data);
+        try {
+            // 1. Cria o usuário dentro da transação
+            const user = await userRepository.createUser(data, { transaction: t });
+
+            // 2. Cria o carrinho vinculado ao usuário, na mesma transação
+            await cartRepository.createCart({ userId: user.id }, { transaction: t });
+
+            await t.commit();
+            return user;
+        } catch (error) {
+            await t.rollback();
+            throw error;
+        }
     }
 
     async getAllUsers() {
