@@ -1,28 +1,28 @@
+import { expect } from "chai";
+import sinon from "sinon";
 import userController from "../../../src/controllers/UserController";
 import userService from "../../../src/services/UserService";
 import { Request, Response } from "express";
-
-// Mock do Service
-jest.mock("../../../src/services/UserService");
-const userServiceMock = jest.mocked(userService);
 
 describe("UserController", () => {
     let req: Partial<Request>;
     let res: Partial<Response>;
 
     beforeEach(() => {
-        jest.clearAllMocks();
-
         req = {
             body: {},
             params: {}
         } as any;
 
         res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-            send: jest.fn()
+            status: sinon.stub().returnsThis(),
+            json: sinon.stub(),
+            send: sinon.stub()
         } as unknown as Response;
+    });
+
+    afterEach(() => {
+        sinon.restore();
     });
 
     describe("createUser", () => {
@@ -30,13 +30,13 @@ describe("UserController", () => {
             req.body = { name: "Teste", email: "teste@teste.com", password: "123" };
             const mockUser = { id: 1, ...req.body };
 
-            userServiceMock.createUser.mockResolvedValue(mockUser as any);
+            const createStub = sinon.stub(userService, "createUser").resolves(mockUser as any);
 
             await userController.createUser(req as Request, res as Response);
 
-            expect(userServiceMock.createUser).toHaveBeenCalledWith(req.body);
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith(mockUser);
+            expect(createStub.calledWith(req.body)).to.be.true;
+            expect((res.status as sinon.SinonStub).calledWith(201)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(mockUser)).to.be.true;
         });
 
         it("deve retornar 400 se campos obrigatórios estiverem faltando", async () => {
@@ -44,10 +44,10 @@ describe("UserController", () => {
 
             await userController.createUser(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            expect((res.status as sinon.SinonStub).calledWith(400)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({
                 message: "Nome, email e senha são obrigatórios."
-            }));
+            }))).to.be.true;
         });
 
         it("deve retornar 409 se o email já estiver cadastrado", async () => {
@@ -55,40 +55,40 @@ describe("UserController", () => {
             const error = new Error("Unique constraint");
             error.name = "SequelizeUniqueConstraintError";
 
-            userServiceMock.createUser.mockRejectedValue(error);
+            sinon.stub(userService, "createUser").rejects(error);
 
             await userController.createUser(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(409);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Este email já está cadastrado." }));
+            expect((res.status as sinon.SinonStub).calledWith(409)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: "Este email já está cadastrado." }))).to.be.true;
         });
 
         it("deve retornar 500 em caso de erro genérico", async () => {
             req.body = { name: "Teste", email: "teste@teste.com", password: "123" };
-            userServiceMock.createUser.mockRejectedValue(new Error("Erro DB"));
+            sinon.stub(userService, "createUser").rejects(new Error("Erro DB"));
 
             await userController.createUser(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(500);
+            expect((res.status as sinon.SinonStub).calledWith(500)).to.be.true;
         });
     });
 
     describe("getAllUsers", () => {
         it("deve retornar 200 e a lista de usuários", async () => {
             const mockUsers = [{ id: 1, name: "User 1" }];
-            userServiceMock.getAllUsers.mockResolvedValue(mockUsers as any);
+            sinon.stub(userService, "getAllUsers").resolves(mockUsers as any);
 
             await userController.getAllUsers(req as Request, res as Response);
 
-            expect(res.json).toHaveBeenCalledWith(mockUsers);
+            expect((res.json as sinon.SinonStub).calledWith(mockUsers)).to.be.true;
         });
 
         it("deve retornar 500 em caso de erro", async () => {
-            userServiceMock.getAllUsers.mockRejectedValue(new Error("Erro"));
+            sinon.stub(userService, "getAllUsers").rejects(new Error("Erro"));
 
             await userController.getAllUsers(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(500);
+            expect((res.status as sinon.SinonStub).calledWith(500)).to.be.true;
         });
     });
 
@@ -98,12 +98,12 @@ describe("UserController", () => {
             req.body = { name: "Novo Nome" };
             const mockUser = { id: 1, name: "Novo Nome" };
 
-            userServiceMock.updateUser.mockResolvedValue(mockUser as any);
+            sinon.stub(userService, "updateUser").resolves(mockUser as any);
 
             await userController.updateUser(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ user: mockUser }));
+            expect((res.status as sinon.SinonStub).calledWith(200)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ user: mockUser }))).to.be.true;
         });
 
         it("deve retornar 400 se o corpo da requisição estiver vazio", async () => {
@@ -112,39 +112,39 @@ describe("UserController", () => {
 
             await userController.updateUser(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("vazio") }));
+            expect((res.status as sinon.SinonStub).calledWith(400)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: sinon.match("vazio") }))).to.be.true;
         });
 
         it("deve retornar 404 se o usuário não for encontrado", async () => {
             req.params = { id: "1" };
             req.body = { name: "Novo" };
-            userServiceMock.updateUser.mockResolvedValue(null);
+            sinon.stub(userService, "updateUser").resolves(null);
 
             await userController.updateUser(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(404);
+            expect((res.status as sinon.SinonStub).calledWith(404)).to.be.true;
         });
     });
 
     describe("deleteUser", () => {
         it("deve retornar 204 (No Content) se deletado com sucesso", async () => {
             req.params = { id: "1" };
-            userServiceMock.deleteUser.mockResolvedValue(true);
+            sinon.stub(userService, "deleteUser").resolves(true);
 
             await userController.deleteUser(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(204);
-            expect(res.send).toHaveBeenCalled();
+            expect((res.status as sinon.SinonStub).calledWith(204)).to.be.true;
+            expect((res.send as sinon.SinonStub).called).to.be.true;
         });
 
         it("deve retornar 404 se não encontrado", async () => {
             req.params = { id: "1" };
-            userServiceMock.deleteUser.mockResolvedValue(false);
+            sinon.stub(userService, "deleteUser").resolves(false);
 
             await userController.deleteUser(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(404);
+            expect((res.status as sinon.SinonStub).calledWith(404)).to.be.true;
         });
     });
 });
