@@ -1,34 +1,34 @@
+import { expect } from "chai";
+import sinon from "sinon";
 import purchaseService from "../../../src/services/PurchaseService";
 import purchaseRepository from "../../../src/repository/PurchaseRepository";
 
-// Mock do PurchaseRepository
-jest.mock("../../../src/repository/PurchaseRepository");
-
-// Cria versão tipada do mock
-const purchaseRepositoryMock = jest.mocked(purchaseRepository);
-
 describe("PurchaseService", () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+    afterEach(() => {
+        sinon.restore();
     });
 
     describe("finalizePurchase", () => {
         it("deve finalizar a compra com sucesso delegando para o repositório", async () => {
             const mockPurchase = { id: 1, totalAmount: 100, userId: 1, items: [] };
-            purchaseRepositoryMock.finalizePurchase.mockResolvedValue(mockPurchase as any);
+            const finalizeStub = sinon.stub(purchaseRepository, "finalizePurchase").resolves(mockPurchase as any);
 
             const result = await purchaseService.finalizePurchase(1);
 
-            expect(purchaseRepositoryMock.finalizePurchase).toHaveBeenCalledWith(1);
-            expect(result).toEqual(mockPurchase);
+            expect(finalizeStub.calledWith(1)).to.be.true;
+            expect(result).to.deep.equal(mockPurchase);
         });
 
         it("deve propagar erro se o repositório falhar (ex: carrinho vazio ou estoque insuficiente)", async () => {
             const error = new Error("Carrinho vazio ou não encontrado.");
-            purchaseRepositoryMock.finalizePurchase.mockRejectedValue(error);
+            sinon.stub(purchaseRepository, "finalizePurchase").rejects(error);
 
-            await expect(purchaseService.finalizePurchase(1))
-                .rejects.toThrow("Carrinho vazio ou não encontrado.");
+            try {
+                await purchaseService.finalizePurchase(1);
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Carrinho vazio ou não encontrado.");
+            }
         });
     });
 
@@ -38,23 +38,30 @@ describe("PurchaseService", () => {
                 { id: 1, totalAmount: 50, items: [] },
                 { id: 2, totalAmount: 150, items: [] }
             ];
-            purchaseRepositoryMock.getPurchasesByUserId.mockResolvedValue(mockPurchases as any);
+            const getPurchasesStub = sinon.stub(purchaseRepository, "getPurchasesByUserId").resolves(mockPurchases as any);
 
             const result = await purchaseService.getPurchasesByUserId(1);
 
-            expect(purchaseRepositoryMock.getPurchasesByUserId).toHaveBeenCalledWith(1);
-            expect(result).toEqual(mockPurchases);
+            expect(getPurchasesStub.calledWith(1)).to.be.true;
+            expect(result).to.deep.equal(mockPurchases);
         });
 
         it("deve retornar lista vazia se não houver compras", async () => {
-            purchaseRepositoryMock.getPurchasesByUserId.mockResolvedValue([]);
+            sinon.stub(purchaseRepository, "getPurchasesByUserId").resolves([]);
             const result = await purchaseService.getPurchasesByUserId(1);
-            expect(result).toEqual([]);
+            expect(result).to.deep.equal([]);
         });
 
         it("deve propagar erro se o repositório falhar", async () => {
-            purchaseRepositoryMock.getPurchasesByUserId.mockRejectedValue(new Error("Erro de conexão"));
-            await expect(purchaseService.getPurchasesByUserId(1)).rejects.toThrow("Erro de conexão");
+            const error = new Error("Erro de conexão");
+            sinon.stub(purchaseRepository, "getPurchasesByUserId").rejects(error);
+
+            try {
+                await purchaseService.getPurchasesByUserId(1);
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro de conexão");
+            }
         });
     });
 });
