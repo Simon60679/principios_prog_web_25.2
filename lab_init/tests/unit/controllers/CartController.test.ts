@@ -1,18 +1,14 @@
+import { expect } from "chai";
+import sinon from "sinon";
 import cartController from "../../../src/controllers/CartController";
 import cartService from "../../../src/services/CartService";
 import { Request, Response } from "express";
-
-// Mock do Service
-jest.mock("../../../src/services/CartService");
-const cartServiceMock = jest.mocked(cartService);
 
 describe("CartController", () => {
     let req: Partial<Request>;
     let res: Partial<Response>;
 
     beforeEach(() => {
-        jest.clearAllMocks();
-
         req = {
             body: {},
             params: {},
@@ -20,41 +16,45 @@ describe("CartController", () => {
         } as any;
 
         res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-            send: jest.fn()
+            status: sinon.stub().returnsThis(),
+            json: sinon.stub(),
+            send: sinon.stub()
         } as unknown as Response;
+    });
+
+    afterEach(() => {
+        sinon.restore();
     });
 
     describe("findCart", () => {
         it("deve retornar 200 e os detalhes do carrinho", async () => {
             req.params = { userId: "1" };
             const mockCart = { userId: 1, items: [] };
-            cartServiceMock.findCartDetails.mockResolvedValue(mockCart as any);
+            const findStub = sinon.stub(cartService, "findCartDetails").resolves(mockCart as any);
 
             await cartController.findCart(req as Request, res as Response);
 
-            expect(cartServiceMock.findCartDetails).toHaveBeenCalledWith(1);
-            expect(res.json).toHaveBeenCalledWith(mockCart);
+            expect(findStub.calledWith(1)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(mockCart)).to.be.true;
         });
 
         it("deve retornar 404 se o carrinho não for encontrado", async () => {
             req.params = { userId: "1" };
-            cartServiceMock.findCartDetails.mockResolvedValue(null);
+            sinon.stub(cartService, "findCartDetails").resolves(null);
 
             await cartController.findCart(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Carrinho não encontrado para este usuário." }));
+            expect((res.status as sinon.SinonStub).calledWith(404)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: "Carrinho não encontrado para este usuário." }))).to.be.true;
         });
 
         it("deve retornar 500 em caso de erro no serviço", async () => {
             req.params = { userId: "1" };
-            cartServiceMock.findCartDetails.mockRejectedValue(new Error("Erro interno"));
+            sinon.stub(cartService, "findCartDetails").rejects(new Error("Erro interno"));
 
             await cartController.findCart(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(500);
+            expect((res.status as sinon.SinonStub).calledWith(500)).to.be.true;
         });
     });
 
@@ -63,53 +63,54 @@ describe("CartController", () => {
             req.body = { userId: 1, productId: 10, quantity: 2 };
             const mockItem = { ...req.body, id: 1 };
 
-            cartServiceMock.addItemToCart.mockResolvedValue(mockItem);
+            const addStub = sinon.stub(cartService, "addItemToCart").resolves(mockItem);
 
             await cartController.addItem(req as Request, res as Response);
 
-            expect(cartServiceMock.addItemToCart).toHaveBeenCalledWith(req.body);
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith(mockItem);
+            expect(addStub.calledWith(req.body)).to.be.true;
+            expect((res.status as sinon.SinonStub).calledWith(201)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(mockItem)).to.be.true;
         });
 
         it("deve retornar 400 se faltarem dados obrigatórios", async () => {
             req.body = { userId: 1 }; // Faltando productId e quantity
+            const addStub = sinon.stub(cartService, "addItemToCart");
 
             await cartController.addItem(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining("obrigatórios") }));
-            expect(cartServiceMock.addItemToCart).not.toHaveBeenCalled();
+            expect((res.status as sinon.SinonStub).calledWith(400)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: sinon.match("obrigatórios") }))).to.be.true;
+            expect(addStub.called).to.be.false;
         });
 
         it("deve retornar 500 se o serviço falhar", async () => {
             req.body = { userId: 1, productId: 10, quantity: 2 };
-            cartServiceMock.addItemToCart.mockRejectedValue(new Error("Erro"));
+            sinon.stub(cartService, "addItemToCart").rejects(new Error("Erro"));
 
             await cartController.addItem(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(500);
+            expect((res.status as sinon.SinonStub).calledWith(500)).to.be.true;
         });
     });
 
     describe("removeItem", () => {
         it("deve retornar 200 se o item for removido com sucesso", async () => {
             req.params = { userId: "1", productId: "10" };
-            cartServiceMock.removeItemFromCart.mockResolvedValue(true);
+            const removeStub = sinon.stub(cartService, "removeItemFromCart").resolves(true);
 
             await cartController.removeItem(req as Request, res as Response);
 
-            expect(cartServiceMock.removeItemFromCart).toHaveBeenCalledWith(1, 10);
-            expect(res.status).toHaveBeenCalledWith(200);
+            expect(removeStub.calledWith(1, 10)).to.be.true;
+            expect((res.status as sinon.SinonStub).calledWith(200)).to.be.true;
         });
 
         it("deve retornar 404 se o item não for encontrado no carrinho", async () => {
             req.params = { userId: "1", productId: "10" };
-            cartServiceMock.removeItemFromCart.mockResolvedValue(false);
+            sinon.stub(cartService, "removeItemFromCart").resolves(false);
 
             await cartController.removeItem(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(404);
+            expect((res.status as sinon.SinonStub).calledWith(404)).to.be.true;
         });
     });
 
@@ -119,16 +120,16 @@ describe("CartController", () => {
             req.body = { quantity: 1 };
             const mockUpdatedItem = { productId: 10, quantity: 1 };
 
-            cartServiceMock.decreaseItemQuantity.mockResolvedValue(mockUpdatedItem as any);
+            const decreaseStub = sinon.stub(cartService, "decreaseItemQuantity").resolves(mockUpdatedItem as any);
 
             await cartController.decreaseItem(req as Request, res as Response);
 
-            expect(cartServiceMock.decreaseItemQuantity).toHaveBeenCalledWith(1, 10, 1);
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-                message: expect.stringContaining("atualizada"),
+            expect(decreaseStub.calledWith(1, 10, 1)).to.be.true;
+            expect((res.status as sinon.SinonStub).calledWith(200)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({
+                message: sinon.match("atualizada"),
                 item: mockUpdatedItem
-            }));
+            }))).to.be.true;
         });
 
         it("deve retornar 400 se a quantidade não for informada", async () => {
@@ -137,7 +138,7 @@ describe("CartController", () => {
 
             await cartController.decreaseItem(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(400);
+            expect((res.status as sinon.SinonStub).calledWith(400)).to.be.true;
         });
     });
 });
