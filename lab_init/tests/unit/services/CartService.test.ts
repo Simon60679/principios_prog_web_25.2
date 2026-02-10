@@ -1,41 +1,42 @@
+import { expect } from "chai";
+import sinon from "sinon";
 import cartService from "../../../src/services/CartService";
 import cartRepository from "../../../src/repository/CartRepository";
 
-// Mock do CartRepository
-jest.mock("../../../src/repository/CartRepository");
-
-// Cria versão tipada do mock
-const cartRepositoryMock = jest.mocked(cartRepository);
-
 describe("CartService", () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
+    afterEach(() => {
+        sinon.restore();
     });
 
     describe("findCartDetails", () => {
         it("deve retornar os detalhes do carrinho quando encontrado", async () => {
             const mockCart = { userId: 1, items: [] };
-            cartRepositoryMock.findCartById.mockResolvedValue(mockCart as any);
+            const findStub = sinon.stub(cartRepository, "findCartById").resolves(mockCart as any);
 
             const result = await cartService.findCartDetails(1);
 
-            expect(cartRepositoryMock.findCartById).toHaveBeenCalledWith(1);
-            expect(result).toEqual(mockCart);
+            expect(findStub.calledWith(1)).to.be.true;
+            expect(result).to.deep.equal(mockCart);
         });
 
         it("deve retornar null se o carrinho não for encontrado", async () => {
-            cartRepositoryMock.findCartById.mockResolvedValue(null);
+            sinon.stub(cartRepository, "findCartById").resolves(null);
 
             const result = await cartService.findCartDetails(999);
 
-            expect(result).toBeNull();
+            expect(result).to.be.null;
         });
 
         it("deve propagar erro se o repositório falhar", async () => {
             const error = new Error("Erro ao buscar carrinho");
-            cartRepositoryMock.findCartById.mockRejectedValue(error);
+            sinon.stub(cartRepository, "findCartById").rejects(error);
 
-            await expect(cartService.findCartDetails(1)).rejects.toThrow("Erro ao buscar carrinho");
+            try {
+                await cartService.findCartDetails(1);
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro ao buscar carrinho");
+            }
         });
     });
 
@@ -43,73 +44,88 @@ describe("CartService", () => {
         it("deve adicionar um item ao carrinho com sucesso", async () => {
             const itemData = { userId: 1, productId: 10, quantity: 2 };
             const mockAddedItem = { ...itemData, id: 1 };
-
-            cartRepositoryMock.addItemToCart.mockResolvedValue(mockAddedItem as any);
+            const addStub = sinon.stub(cartRepository, "addItemToCart").resolves(mockAddedItem as any);
 
             const result = await cartService.addItemToCart(itemData);
 
-            expect(cartRepositoryMock.addItemToCart).toHaveBeenCalledWith(itemData);
-            expect(result).toEqual(mockAddedItem);
+            expect(addStub.calledWith(itemData)).to.be.true;
+            expect(result).to.deep.equal(mockAddedItem);
         });
 
         it("deve propagar erro se o repositório falhar (ex: estoque insuficiente)", async () => {
             const error = new Error("Estoque insuficiente");
-            cartRepositoryMock.addItemToCart.mockRejectedValue(error);
+            sinon.stub(cartRepository, "addItemToCart").rejects(error);
 
-            await expect(cartService.addItemToCart({ userId: 1, productId: 1, quantity: 100 }))
-                .rejects.toThrow("Estoque insuficiente");
+            try {
+                await cartService.addItemToCart({ userId: 1, productId: 1, quantity: 100 });
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Estoque insuficiente");
+            }
         });
     });
 
     describe("removeItemFromCart", () => {
         it("deve retornar true se o item for removido com sucesso", async () => {
-            cartRepositoryMock.removeItemFromCart.mockResolvedValue(1); // 1 linha afetada
+            const removeStub = sinon.stub(cartRepository, "removeItemFromCart").resolves(1); // 1 linha afetada
 
             const result = await cartService.removeItemFromCart(1, 10);
 
-            expect(cartRepositoryMock.removeItemFromCart).toHaveBeenCalledWith(1, 10);
-            expect(result).toBe(true);
+            expect(removeStub.calledWith(1, 10)).to.be.true;
+            expect(result).to.be.true;
         });
 
         it("deve retornar false se o item não for encontrado para remoção", async () => {
-            cartRepositoryMock.removeItemFromCart.mockResolvedValue(0); // 0 linhas afetadas
+            sinon.stub(cartRepository, "removeItemFromCart").resolves(0); // 0 linhas afetadas
 
             const result = await cartService.removeItemFromCart(1, 999);
 
-            expect(result).toBe(false);
+            expect(result).to.be.false;
         });
 
         it("deve propagar erro se houver falha no banco", async () => {
             const error = new Error("Erro ao remover");
-            cartRepositoryMock.removeItemFromCart.mockRejectedValue(error);
+            sinon.stub(cartRepository, "removeItemFromCart").rejects(error);
 
-            await expect(cartService.removeItemFromCart(1, 10)).rejects.toThrow("Erro ao remover");
+            try {
+                await cartService.removeItemFromCart(1, 10);
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro ao remover");
+            }
         });
     });
 
     describe("decreaseItemQuantity", () => {
         it("deve retornar o item atualizado quando a quantidade é decrementada", async () => {
             const mockUpdatedItem = { productId: 10, quantity: 1 };
-            cartRepositoryMock.decreaseItemQuantity.mockResolvedValue(mockUpdatedItem as any);
+            const decreaseStub = sinon.stub(cartRepository, "decreaseItemQuantity").resolves(mockUpdatedItem as any);
 
             const result = await cartService.decreaseItemQuantity(1, 10, 1);
 
-            expect(cartRepositoryMock.decreaseItemQuantity).toHaveBeenCalledWith(1, 10, 1);
-            expect(result).toEqual(mockUpdatedItem);
+            expect(decreaseStub.calledWith(1, 10, 1)).to.be.true;
+            expect(result).to.deep.equal(mockUpdatedItem);
         });
 
         it("deve retornar objeto de deleção se a quantidade chegar a zero", async () => {
             const mockDeletedResponse = { deleted: true, productId: 10 };
-            cartRepositoryMock.decreaseItemQuantity.mockResolvedValue(mockDeletedResponse as any);
+            sinon.stub(cartRepository, "decreaseItemQuantity").resolves(mockDeletedResponse as any);
 
             const result = await cartService.decreaseItemQuantity(1, 10, 5);
 
-            expect(result).toEqual(mockDeletedResponse);
+            expect(result).to.deep.equal(mockDeletedResponse);
         });
 
         it("deve propagar erro se o repositório falhar", async () => {
-            cartRepositoryMock.decreaseItemQuantity.mockRejectedValue(new Error("Erro interno"));
-            await expect(cartService.decreaseItemQuantity(1, 1, 1)).rejects.toThrow("Erro interno");
+            const error = new Error("Erro interno");
+            sinon.stub(cartRepository, "decreaseItemQuantity").rejects(error);
+
+            try {
+                await cartService.decreaseItemQuantity(1, 1, 1);
+                expect.fail("Deveria ter lançado erro");
+            } catch (err: any) {
+                expect(err.message).to.equal("Erro interno");
+            }
         });
     });
 });
