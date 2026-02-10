@@ -1,22 +1,15 @@
+import { expect } from "chai";
+import sinon from "sinon";
 import transactionController from "../../../src/controllers/TransactionController";
 import purchaseService from "../../../src/services/PurchaseService";
 import saleRepository from "../../../src/repository/SaleRepository";
 import { Request, Response } from "express";
-
-// Mock das dependências
-jest.mock("../../../src/services/PurchaseService");
-jest.mock("../../../src/repository/SaleRepository");
-
-const purchaseServiceMock = jest.mocked(purchaseService);
-const saleRepositoryMock = jest.mocked(saleRepository);
 
 describe("TransactionController", () => {
     let req: Partial<Request>;
     let res: Partial<Response>;
 
     beforeEach(() => {
-        jest.clearAllMocks();
-
         req = {
             body: {},
             params: {},
@@ -24,54 +17,60 @@ describe("TransactionController", () => {
         } as any;
 
         res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn(),
-            send: jest.fn()
+            status: sinon.stub().returnsThis(),
+            json: sinon.stub(),
+            send: sinon.stub()
         } as unknown as Response;
+    });
+
+    afterEach(() => {
+        sinon.restore();
     });
 
     describe("checkout", () => {
         it("deve retornar 201 e a compra finalizada com sucesso", async () => {
             req.params = { userId: "1" };
             const mockPurchase = { id: 1, totalAmount: 100, items: [] };
-            purchaseServiceMock.finalizePurchase.mockResolvedValue(mockPurchase as any);
+            const finalizeStub = sinon.stub(purchaseService, "finalizePurchase").resolves(mockPurchase as any);
 
             await transactionController.checkout(req as Request, res as Response);
 
-            expect(purchaseServiceMock.finalizePurchase).toHaveBeenCalledWith(1);
-            expect(res.status).toHaveBeenCalledWith(201);
-            expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+            expect(finalizeStub.calledWith(1)).to.be.true;
+            expect((res.status as sinon.SinonStub).calledWith(201)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({
                 message: "Compra finalizada com sucesso!",
                 purchase: mockPurchase
-            }));
+            }))).to.be.true;
         });
 
         it("deve retornar 400 se o ID do usuário for inválido", async () => {
             req.params = { userId: "abc" };
+            const finalizeStub = sinon.stub(purchaseService, "finalizePurchase");
 
             await transactionController.checkout(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith({ message: "ID de usuário inválido." });
+            expect((res.status as sinon.SinonStub).calledWith(400)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: "ID de usuário inválido." }))).to.be.true;
+            expect(finalizeStub.called).to.be.false;
         });
 
         it("deve retornar 400 se o carrinho estiver vazio (erro de negócio)", async () => {
             req.params = { userId: "1" };
-            purchaseServiceMock.finalizePurchase.mockRejectedValue(new Error("Carrinho vazio"));
+            sinon.stub(purchaseService, "finalizePurchase").rejects(new Error("Carrinho vazio"));
 
             await transactionController.checkout(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(400);
-            expect(res.json).toHaveBeenCalledWith({ message: "Carrinho vazio" });
+            expect((res.status as sinon.SinonStub).calledWith(400)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: "Carrinho vazio" }))).to.be.true;
         });
 
         it("deve retornar 500 em caso de erro genérico", async () => {
             req.params = { userId: "1" };
-            purchaseServiceMock.finalizePurchase.mockRejectedValue(new Error("Erro DB"));
+            sinon.stub(purchaseService, "finalizePurchase").rejects(new Error("Erro DB"));
 
             await transactionController.checkout(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(500);
+            expect((res.status as sinon.SinonStub).calledWith(500)).to.be.true;
         });
     });
 
@@ -79,22 +78,22 @@ describe("TransactionController", () => {
         it("deve retornar 200 e o histórico de compras", async () => {
             req.params = { userId: "1" };
             const mockPurchases = [{ id: 1, total: 50 }];
-            purchaseServiceMock.getPurchasesByUserId.mockResolvedValue(mockPurchases as any);
+            const getPurchasesStub = sinon.stub(purchaseService, "getPurchasesByUserId").resolves(mockPurchases as any);
 
             await transactionController.getPurchasesHistory(req as Request, res as Response);
 
-            expect(purchaseServiceMock.getPurchasesByUserId).toHaveBeenCalledWith(1);
-            expect(res.json).toHaveBeenCalledWith(mockPurchases);
+            expect(getPurchasesStub.calledWith(1)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(mockPurchases)).to.be.true;
         });
 
         it("deve retornar 404 se não houver compras", async () => {
             req.params = { userId: "1" };
-            purchaseServiceMock.getPurchasesByUserId.mockResolvedValue([]);
+            sinon.stub(purchaseService, "getPurchasesByUserId").resolves([]);
 
             await transactionController.getPurchasesHistory(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith({ message: "Nenhuma compra encontrada para este usuário." });
+            expect((res.status as sinon.SinonStub).calledWith(404)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: "Nenhuma compra encontrada para este usuário." }))).to.be.true;
         });
     });
 
@@ -102,22 +101,22 @@ describe("TransactionController", () => {
         it("deve retornar 200 e o histórico de vendas", async () => {
             req.params = { userId: "1" };
             const mockSales = [{ id: 1, total: 50 }];
-            saleRepositoryMock.getSalesBySellerId.mockResolvedValue(mockSales as any);
+            const getSalesStub = sinon.stub(saleRepository, "getSalesBySellerId").resolves(mockSales as any);
 
             await transactionController.getSalesHistory(req as Request, res as Response);
 
-            expect(saleRepositoryMock.getSalesBySellerId).toHaveBeenCalledWith(1);
-            expect(res.json).toHaveBeenCalledWith(mockSales);
+            expect(getSalesStub.calledWith(1)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(mockSales)).to.be.true;
         });
 
         it("deve retornar 404 se não houver vendas", async () => {
             req.params = { userId: "1" };
-            saleRepositoryMock.getSalesBySellerId.mockResolvedValue([]);
+            sinon.stub(saleRepository, "getSalesBySellerId").resolves([]);
 
             await transactionController.getSalesHistory(req as Request, res as Response);
 
-            expect(res.status).toHaveBeenCalledWith(404);
-            expect(res.json).toHaveBeenCalledWith({ message: "Nenhuma venda encontrada para este usuário." });
+            expect((res.status as sinon.SinonStub).calledWith(404)).to.be.true;
+            expect((res.json as sinon.SinonStub).calledWith(sinon.match({ message: "Nenhuma venda encontrada para este usuário." }))).to.be.true;
         });
     });
 });
