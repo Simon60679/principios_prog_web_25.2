@@ -62,7 +62,6 @@ class UserController {
                 return res.status(400).json({ message: "ID de usuário inválido." });
             }
 
-            // Garante que há algo para atualizar
             if (Object.keys(dataToUpdate).length === 0) {
                 return res.status(400).json({ message: "Corpo da requisição vazio. Forneça dados para atualização." });
             }

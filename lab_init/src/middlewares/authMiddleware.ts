@@ -15,7 +15,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
 
   try {
     const decoded = verifyToken(token);
-    (req as any).user = decoded; // Adiciona o usuário decodificado ao objeto `req`
+    (req as any).user = decoded;
     next();
   } catch (err) {
     res.status(400).json({ message: 'Token inválido.' });

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import purchaseService from "../services/PurchaseService";
-import saleRepository from "../repository/SaleRepository"; 
+import saleRepository from "../repository/SaleRepository";
 
 class TransactionController {
     async checkout(req: Request, res: Response) {
@@ -10,12 +10,15 @@ class TransactionController {
                 return res.status(400).json({ message: "ID de usuário inválido." });
             }
 
+            if (userId !== (req as any).user.id) {
+                return res.status(403).json({ message: "Acesso negado. Você não pode finalizar compras para outro usuário." });
+            }
+
             const purchase = await purchaseService.finalizePurchase(userId);
 
             return res.status(201).json({ message: "Compra finalizada com sucesso!", purchase: purchase });
 
         } catch (error: any) {
-            // Loga apenas se não estiver em ambiente de teste para não poluir o console
             if (process.env.NODE_ENV !== 'test') {
                 console.error("Erro ao finalizar compra:", error);
             }
@@ -35,6 +38,10 @@ class TransactionController {
             const userId = parseInt(req.params.userId, 10);
             if (isNaN(userId)) {
                 return res.status(400).json({ message: "ID de usuário inválido." });
+            }
+
+            if (userId !== (req as any).user.id) {
+                return res.status(403).json({ message: "Acesso negado. Você só pode visualizar seu próprio histórico." });
             }
 
             const purchases = await purchaseService.getPurchasesByUserId(userId);
@@ -58,7 +65,10 @@ class TransactionController {
                 return res.status(400).json({ message: "ID de usuário inválido." });
             }
 
-            // A lógica de vendas é simples o suficiente para usar o Repository diretamente se você não precisar de Service.
+            if (sellerId !== (req as any).user.id) {
+                return res.status(403).json({ message: "Acesso negado. Você só pode visualizar suas próprias vendas." });
+            }
+
             const sales = await saleRepository.getSalesBySellerId(sellerId);
 
             if (!sales || sales.length === 0) {

@@ -12,9 +12,9 @@ class ProductService {
     async updateStock(productId: number, newStock: number) {
         const affectedRows = await productRepository.updateStock(productId, newStock);
         if (affectedRows === 0) {
-            return null; // Não encontrado
+            return null;
         }
-        return await productRepository.findProductById(productId); // Retorna o produto atualizado
+        return await productRepository.findProductById(productId);
     }
 
     async deleteProduct(productId: number) {

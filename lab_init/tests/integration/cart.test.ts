@@ -20,19 +20,15 @@ describe("Integração - Carrinho", () => {
         await User.destroy({ where: {} });
     });
 
-    // Helper para configurar o cenário (Usuário + Produto + Token)
     const setupScenario = async () => {
-        // 1. Criar Usuário
         const user = await User.create({
             name: "Shopper",
             email: "shopper@test.com",
             password: "password123"
         });
 
-        // Cria o carrinho para o usuário (necessário se não for criado automaticamente)
         await Cart.create({ userId: user.id });
 
-        // 2. Login para pegar token
         const loginRes = await request(app)
             .post("/auth/login")
             .send({
@@ -41,7 +37,6 @@ describe("Integração - Carrinho", () => {
             });
         const token = loginRes.body.token;
 
-        // 3. Criar Produto
         const product = await Product.create({
             name: "Produto Teste",
             price: 100.00,
@@ -91,7 +86,6 @@ describe("Integração - Carrinho", () => {
         it("deve retornar o carrinho do usuário com os itens", async () => {
             const { user, token, product } = await setupScenario();
 
-            // Adiciona item primeiro
             await request(app)
                 .post("/cart/add")
                 .set("Authorization", `Bearer ${token}`)
@@ -104,7 +98,6 @@ describe("Integração - Carrinho", () => {
             expect(res.status).to.equal(200);
             expect(res.body).to.have.property("items");
             expect(res.body.items).to.be.an("array");
-            // O repositório pode não retornar productId diretamente, mas retorna o produto aninhado
             expect(res.body.items[0].product.name).to.equal(product.name);
         });
     });
@@ -113,7 +106,6 @@ describe("Integração - Carrinho", () => {
         it("deve diminuir a quantidade de um item", async () => {
             const { user, token, product } = await setupScenario();
 
-            // Adiciona 5 itens
             await request(app)
                 .post("/cart/add")
                 .set("Authorization", `Bearer ${token}`)
@@ -125,7 +117,7 @@ describe("Integração - Carrinho", () => {
                 .send({ quantity: 2 });
 
             expect(res.status).to.equal(200);
-            expect(res.body.item.quantity).to.equal(3); // 5 - 2 = 3
+            expect(res.body.item.quantity).to.equal(3);
         });
     });
 
@@ -133,7 +125,6 @@ describe("Integração - Carrinho", () => {
         it("deve remover um item do carrinho", async () => {
             const { user, token, product } = await setupScenario();
 
-            // Adiciona item
             await request(app)
                 .post("/cart/add")
                 .set("Authorization", `Bearer ${token}`)

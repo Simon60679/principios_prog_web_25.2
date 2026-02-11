@@ -6,9 +6,6 @@ class CartService {
     }
 
     async addItemToCart(data: { userId: number, productId: number, quantity: number }) {
-        // Lógica de negócio (ex: verificar se o produto ainda está em estoque, se é do próprio usuário)
-        // ...
-
         return await cartRepository.addItemToCart(data);
     }
 
@@ -18,7 +15,6 @@ class CartService {
     }
 
     async decreaseItemQuantity(userId: number, productId: number, quantityToDecrease: number) {
-        // A lógica de negócio (diminuir e deletar se <= 0) já está no repositório, mas passamos pelo service.
         return await cartRepository.decreaseItemQuantity(userId, productId, quantityToDecrease);
     }
 }

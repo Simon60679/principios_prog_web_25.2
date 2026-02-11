@@ -1,25 +1,21 @@
 import { Model, DataTypes, Optional } from "sequelize";
 import sequelize from "../config/database";
 
-// 1. Atributos que existem na tabela
 export interface PurchaseItemAttributes {
   id: number;
-  purchaseId: number; // Chave estrangeira para Purchase
-  productName: string; // Nome do produto no momento da compra
-  productPrice: number; // Preço unitário no momento da compra
+  purchaseId: number;
+  productName: string;
+  productPrice: number;
   quantity: number;
-  subtotal: number; // productPrice * quantity
+  subtotal: number;
 }
 
-// 2. Atributos necessários para criar
 export interface PurchaseItemCreationAttributes
-  extends Optional<PurchaseItemAttributes, "id" | "subtotal"> {}
+  extends Optional<PurchaseItemAttributes, "id" | "subtotal"> { }
 
-// 3. Classe do modelo
 export class PurchaseItem
   extends Model<PurchaseItemAttributes, PurchaseItemCreationAttributes>
-  implements PurchaseItemAttributes
-{
+  implements PurchaseItemAttributes {
   public id!: number;
   public purchaseId!: number;
   public productName!: string;
@@ -28,7 +24,6 @@ export class PurchaseItem
   public subtotal!: number;
 }
 
-// 4. Inicialização do modelo
 PurchaseItem.init(
   {
     id: {
@@ -45,20 +40,20 @@ PurchaseItem.init(
       }
     },
     productName: {
-        type: DataTypes.STRING,
-        allowNull: false,
+      type: DataTypes.STRING,
+      allowNull: false,
     },
     productPrice: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
     },
     quantity: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
+      type: DataTypes.INTEGER,
+      allowNull: false,
     },
     subtotal: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false,
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
     }
   },
   {

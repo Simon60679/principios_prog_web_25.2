@@ -5,7 +5,7 @@ class ProductController {
     async createProduct(req: Request, res: Response) {
         try {
             const { name, price, description, stock } = req.body;
-            const userId = (req as any).user?.id; // Pega o ID do token
+            const userId = (req as any).user?.id;
 
             if (!name || !price || !description) {
                 return res.status(400).json({ message: "Nome, preço e descrição são obrigatórios." });

@@ -2,7 +2,6 @@ import purchaseRepository from "../repository/PurchaseRepository";
 
 class PurchaseService {
     async finalizePurchase(userId: number) {
-        // Lógica de negócio complexa (checkout) é executada no repositório, que contém a transação.
         return await purchaseRepository.finalizePurchase(userId);
     }
 

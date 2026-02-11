@@ -8,21 +8,15 @@ export const login = async (req: Request, res: Response) => {
 
   try {
 
-    // Verifica se o usuário existe
-
     const user = await User.findOne({ where: { email } });
     if (!user) {
       return res.status(400).json({ message: 'Email ou senha inválidos' });
     }
 
-    // Compara a senha fornecida com a senha armazenada
-
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: 'Email ou senha inválidos' });
     }
-
-    // Gera um token JWT
 
     const token = generateToken(user.id, user.name);
 

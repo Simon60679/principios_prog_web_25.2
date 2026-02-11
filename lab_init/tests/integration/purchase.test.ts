@@ -10,42 +10,36 @@ import Sale from "../../src/models/Sale";
 import sequelize from "../../src/config/database";
 
 describe("Integração - Transação (Checkout)", () => {
-    // Garante que as tabelas existam
+
     before(async () => {
         await sequelize.sync({ force: true });
     });
 
-    // Limpa as tabelas antes de cada teste para garantir isolamento
     beforeEach(async () => {
         // Ordem de destruição importa devido às chaves estrangeiras
         await CartItem.destroy({ where: {} });
-        await Purchase.destroy({ where: {} }); // Cascata deve limpar PurchaseItems
-        await Sale.destroy({ where: {} });     // Cascata deve limpar SaleItems
+        await Purchase.destroy({ where: {} });
+        await Sale.destroy({ where: {} });
         await Cart.destroy({ where: {} });
         await Product.destroy({ where: {} });
         await User.destroy({ where: {} });
     });
 
-    // Helper para configurar o cenário: Vendedor, Comprador, Produto e Token
     const setupScenario = async () => {
-        // 1. Criar Vendedor
         const seller = await User.create({
             name: "Vendedor Loja",
             email: "seller@store.com",
             password: "password123"
         });
 
-        // 2. Criar Comprador
         const buyer = await User.create({
             name: "Cliente Final",
             email: "buyer@home.com",
             password: "password123"
         });
 
-        // 3. Criar Carrinho do Comprador
         await Cart.create({ userId: buyer.id });
 
-        // 4. Login do Comprador para obter token
         const loginRes = await request(app)
             .post("/auth/login")
             .send({ email: "buyer@home.com", password: "password123" });
@@ -54,7 +48,6 @@ describe("Integração - Transação (Checkout)", () => {
             throw new Error("Falha ao obter token de autenticação no setup do teste. Verifique se o login está funcionando.");
         }
 
-        // 5. Criar Produto com Estoque inicial de 10
         const product = await Product.create({
             name: "Smartphone",
             price: 1000.00,
@@ -70,38 +63,31 @@ describe("Integração - Transação (Checkout)", () => {
         it("deve finalizar uma compra com sucesso (Happy Path)", async () => {
             const { buyer, seller, token, product } = await setupScenario();
 
-            // Adiciona 2 itens ao carrinho manualmente (simulando estado pré-checkout)
             await CartItem.create({
                 cartId: buyer.id,
                 productId: product.id,
                 quantity: 2
             });
 
-            // Executa o Checkout
             const res = await request(app)
                 .post(`/checkout/${buyer.id}`)
                 .set("Authorization", `Bearer ${token}`);
 
-            // 1. Verifica resposta da API
             expect(res.status).to.equal(201);
             expect(res.body.message).to.include("sucesso");
             expect(res.body.purchase).to.have.property("id");
-            expect(Number(res.body.purchase.totalAmount)).to.equal(2000.00); // 2 * 1000
+            expect(Number(res.body.purchase.totalAmount)).to.equal(2000.00);
 
-            // 2. Verifica Integridade: Compra criada
             const purchase = await Purchase.findOne({ where: { userId: buyer.id } });
             expect(purchase).to.not.be.null;
 
-            // 3. Verifica Integridade: Venda criada para o vendedor
             const sale = await Sale.findOne({ where: { sellerId: seller.id } });
             expect(sale).to.not.be.null;
             expect(Number(sale?.totalAmount)).to.equal(2000.00);
 
-            // 4. Verifica Integridade: Estoque reduzido
             const updatedProduct = await Product.findByPk(product.id);
-            expect(updatedProduct?.stock).to.equal(8); // 10 - 2
+            expect(updatedProduct?.stock).to.equal(8);
 
-            // 5. Verifica Integridade: Carrinho limpo
             const cartItems = await CartItem.findAll({ where: { cartId: buyer.id } });
             expect(cartItems).to.have.lengthOf(0);
         });
@@ -109,7 +95,6 @@ describe("Integração - Transação (Checkout)", () => {
         it("deve falhar se o estoque for insuficiente", async () => {
             const { buyer, token, product } = await setupScenario();
 
-            // Tenta comprar 15 itens (Estoque é 10)
             await CartItem.create({
                 cartId: buyer.id,
                 productId: product.id,
@@ -120,11 +105,9 @@ describe("Integração - Transação (Checkout)", () => {
                 .post(`/checkout/${buyer.id}`)
                 .set("Authorization", `Bearer ${token}`);
 
-            // O controller deve retornar 409 (Conflict) para erros de regra de negócio (estoque)
             expect(res.status).to.equal(409);
             expect(res.body.message).to.include("Estoque insuficiente");
 
-            // Verifica se o estoque permaneceu intacto (Rollback funcionou)
             const p = await Product.findByPk(product.id);
             expect(p?.stock).to.equal(10);
         });
@@ -132,14 +115,185 @@ describe("Integração - Transação (Checkout)", () => {
         it("deve retornar 400 se tentar finalizar com carrinho vazio", async () => {
             const { buyer, token } = await setupScenario();
 
-            // Carrinho está vazio
-
             const res = await request(app)
                 .post(`/checkout/${buyer.id}`)
                 .set("Authorization", `Bearer ${token}`);
 
             expect(res.status).to.equal(400);
             expect(res.body.message).to.include("Carrinho vazio");
+        });
+
+        it("deve gerar vendas separadas para múltiplos vendedores", async () => {
+            const { buyer, seller, token, product } = await setupScenario();
+
+            const seller2 = await User.create({
+                name: "Vendedor Extra",
+                email: "seller2@store.com",
+                password: "password123"
+            });
+
+            const product2 = await Product.create({
+                name: "Fone de Ouvido",
+                price: 200.00,
+                description: "Bluetooth",
+                stock: 20,
+                userId: seller2.id
+            });
+
+            await CartItem.bulkCreate([
+                { cartId: buyer.id, productId: product.id, quantity: 1 },
+                { cartId: buyer.id, productId: product2.id, quantity: 2 }
+            ]);
+
+            const res = await request(app)
+                .post(`/checkout/${buyer.id}`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).to.equal(201);
+            expect(Number(res.body.purchase.totalAmount)).to.equal(1400.00);
+
+            const sale1 = await Sale.findOne({ where: { sellerId: seller.id } });
+            const sale2 = await Sale.findOne({ where: { sellerId: seller2.id } });
+
+            expect(sale1).to.not.be.null;
+            expect(Number(sale1?.totalAmount)).to.equal(1000.00);
+            expect(sale2).to.not.be.null;
+            expect(Number(sale2?.totalAmount)).to.equal(400.00);
+        });
+
+        it("deve retornar 401 se não autenticado", async () => {
+            const { buyer } = await setupScenario();
+            const res = await request(app).post(`/checkout/${buyer.id}`);
+            expect(res.status).to.equal(401);
+        });
+
+        it("deve retornar 403 ao tentar finalizar a compra de outro usuário", async () => {
+            const { token } = await setupScenario();
+            const otherUser = await User.create({ name: "Outro Comprador", email: "other@test.com", password: "123" });
+
+            const res = await request(app)
+                .post(`/checkout/${otherUser.id}`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).to.equal(403);
+        });
+
+        it("deve aceitar checkout com quantidade exata do estoque disponível", async () => {
+            const { buyer, token, product } = await setupScenario();
+
+            await CartItem.create({
+                cartId: buyer.id,
+                productId: product.id,
+                quantity: 10  // exato do estoque
+            });
+
+            const res = await request(app)
+                .post(`/checkout/${buyer.id}`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).to.equal(201);
+
+            const updatedProduct = await Product.findByPk(product.id);
+            expect(updatedProduct?.stock).to.equal(0);  // ← ÚNICO foco
+        });
+    });
+
+    describe("GET /users/:userId/purchases (Histórico de Compras)", () => {
+        it("deve retornar a lista de compras do usuário", async () => {
+            const { buyer, token, product } = await setupScenario();
+
+            await CartItem.create({
+                cartId: buyer.id,
+                productId: product.id,
+                quantity: 1
+            });
+
+            await request(app)
+                .post(`/checkout/${buyer.id}`)
+                .set("Authorization", `Bearer ${token}`);
+
+            const res = await request(app)
+                .get(`/users/${buyer.id}/purchases`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).to.equal(200);
+            expect(res.body).to.be.an("array");
+            expect(res.body).to.have.lengthOf(1);
+            expect(Number(res.body[0].totalAmount)).to.equal(1000.00);
+            expect(res.body[0].items).to.have.lengthOf(1);
+            expect(res.body[0].items[0].productName).to.equal("Smartphone");
+        });
+
+        it("deve retornar 401 se não autenticado ao acessar próprias compras", async () => {
+            const { buyer } = await setupScenario();
+            const res = await request(app).get(`/users/${buyer.id}/purchases`);
+            expect(res.status).to.equal(401);
+        });
+
+        it("deve retornar 403 ao tentar acessar compras de outro usuário", async () => {
+            const { token } = await setupScenario();
+            const otherUser = await User.create({
+                name: "Outro Comprador",
+                email: "other@test.com",
+                password: "123"
+            });
+            const res = await request(app)
+                .get(`/users/${otherUser.id}/purchases`)
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).to.equal(403);
+        });
+    });
+
+    describe("GET /users/:userId/sales (Histórico de Vendas)", () => {
+        it("deve retornar a lista de vendas do vendedor", async () => {
+            const { buyer, seller, token, product } = await setupScenario();
+
+            await CartItem.create({
+                cartId: buyer.id,
+                productId: product.id,
+                quantity: 2
+            });
+
+            await request(app)
+                .post(`/checkout/${buyer.id}`)
+                .set("Authorization", `Bearer ${token}`);
+
+            const sellerLoginRes = await request(app)
+                .post("/auth/login")
+                .send({ email: "seller@store.com", password: "password123" });
+            const sellerToken = sellerLoginRes.body.token;
+
+            const res = await request(app)
+                .get(`/users/${seller.id}/sales`)
+                .set("Authorization", `Bearer ${sellerToken}`);
+
+            expect(res.status).to.equal(200);
+            expect(res.body).to.be.an("array");
+            expect(res.body).to.have.lengthOf(1);
+            expect(Number(res.body[0].totalAmount)).to.equal(2000.00);
+            expect(res.body[0]).to.have.property('soldItems');
+            expect(res.body[0].soldItems[0]).to.have.property('productName');
+            expect(res.body[0].soldItems[0]).to.have.property('quantity');
+            expect(res.body[0].soldItems[0]).to.have.property('productPrice');
+        });
+
+        it("deve retornar 401 se não autenticado ao acessar próprias vendas", async () => {
+            const { seller } = await setupScenario();
+            const res = await request(app).get(`/users/${seller.id}/sales`);
+            expect(res.status).to.equal(401);
+        });
+
+        it("deve retornar 403 ao tentar acessar vendas de outro usuário", async () => {
+            const { token } = await setupScenario();
+            const otherSeller = await User.create({
+                name: "Outro Vendedor",
+                email: "otherseller@test.com",
+                password: "123"
+            });
+            const res = await request(app)
+                .get(`/users/${otherSeller.id}/sales`)
+                .set("Authorization", `Bearer ${token}`);
+            expect(res.status).to.equal(403);
         });
     });
 });

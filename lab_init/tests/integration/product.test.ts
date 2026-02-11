@@ -6,19 +6,15 @@ import User from "../../src/models/User";
 import sequelize from "../../src/config/database";
 
 describe("Integração - Produtos", () => {
-    // Garante que as tabelas existam
     before(async () => {
         await sequelize.sync({ force: true });
     });
 
-    // Limpa as tabelas antes de cada teste
     beforeEach(async () => {
-        // A ordem importa por causa das chaves estrangeiras (Product depende de User)
         await Product.destroy({ where: {} });
         await User.destroy({ where: {} });
     });
 
-    // Helper para criar usuário e obter token
     const createUserAndGetToken = async () => {
         await User.create({
             name: "Product Owner",
@@ -32,7 +28,7 @@ describe("Integração - Produtos", () => {
                 email: "owner@test.com",
                 password: "password123"
             });
-        
+
         return res.body.token;
     };
 
@@ -53,7 +49,7 @@ describe("Integração - Produtos", () => {
             expect(res.status).to.equal(201);
             expect(res.body).to.have.property("id");
             expect(res.body.name).to.equal("Novo Produto");
-            expect(res.body.userId).to.be.a("number"); // Verifica se associou ao usuário do token
+            expect(res.body.userId).to.be.a("number");
         });
 
         it("deve retornar erro (401/403) se tentar criar sem token", async () => {
@@ -77,7 +73,6 @@ describe("Integração - Produtos", () => {
                 .set("Authorization", `Bearer ${token}`)
                 .send({
                     name: "Produto Incompleto"
-                    // price e description faltando
                 });
 
             expect(res.status).to.equal(400);
@@ -86,14 +81,12 @@ describe("Integração - Produtos", () => {
 
     describe("GET /products", () => {
         it("deve retornar lista de produtos (rota pública)", async () => {
-            // Cria um usuário para ser o dono do produto
             const user = await User.create({
                 name: "Seller",
                 email: "seller@test.com",
                 password: "123"
             });
 
-            // Cria um produto diretamente no banco
             await Product.create({
                 name: "Produto Existente",
                 price: 50.00,
@@ -116,7 +109,7 @@ describe("Integração - Produtos", () => {
             const token = await createUserAndGetToken();
 
             const user = await User.findOne({ where: { email: "owner@test.com" } });
-            
+
             const product = await Product.create({
                 name: "Produto para Estoque",
                 price: 10,
@@ -138,7 +131,6 @@ describe("Integração - Produtos", () => {
     describe("DELETE /products/:id", () => {
         it("deve deletar um produto com sucesso", async () => {
             const token = await createUserAndGetToken();
-            // Busca o usuário criado pelo helper para vincular o produto
             const user = await User.findOne({ where: { email: "owner@test.com" } });
 
             const product = await Product.create({
@@ -154,8 +146,7 @@ describe("Integração - Produtos", () => {
                 .set("Authorization", `Bearer ${token}`);
 
             expect(res.status).to.equal(200);
-            
-            // Verifica se realmente sumiu do banco
+
             const deletedProduct = await Product.findByPk(product.id);
             expect(deletedProduct).to.be.null;
         });

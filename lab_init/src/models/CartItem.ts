@@ -2,43 +2,38 @@ import { Model, DataTypes, Optional } from "sequelize";
 import Product from "./Product";
 import sequelize from "../config/database";
 
-// 1. Atributos que existem na tabela
 export interface CartItemAttributes {
-  cartId: number;   // Chave Estrangeira para Cart
-  productId: number; // Chave Estrangeira para Product
-  quantity: number; // A quantidade do item
+  cartId: number;
+  productId: number;
+  quantity: number;
 }
 
-// 2. Atributos necessários para criar
-export interface CartItemCreationAttributes 
-  extends CartItemAttributes {}
+export interface CartItemCreationAttributes
+  extends CartItemAttributes { }
 
-// 3. Classe do modelo
 export class CartItem
   extends Model<CartItemAttributes, CartItemCreationAttributes>
-  implements CartItemAttributes
-{
+  implements CartItemAttributes {
   public cartId!: number;
   public productId!: number;
   public quantity!: number;
   public readonly product?: Product;
 }
 
-// 4. Inicialização do modelo (mapeia pra tabela)
 CartItem.init(
   {
     cartId: {
       type: DataTypes.INTEGER,
-      primaryKey: true, // Parte da chave primária composta
+      primaryKey: true,
       allowNull: false,
       references: {
         model: 'carts',
-        key: 'userId', // Lembrete.: 'userId' é a chave primária da tabela 'carts'
+        key: 'userId',
       }
     },
     productId: {
       type: DataTypes.INTEGER,
-      primaryKey: true, // Parte da chave primária composta
+      primaryKey: true,
       allowNull: false,
       references: {
         model: 'products',
@@ -53,7 +48,7 @@ CartItem.init(
   },
   {
     sequelize,
-    tableName: "itens_carrinho", // Novo nome da tabela de junção
+    tableName: "itens_carrinho",
     timestamps: false,
   }
 );

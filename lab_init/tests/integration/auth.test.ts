@@ -5,17 +5,14 @@ import User from "../../src/models/User";
 import sequelize from "../../src/config/database";
 
 describe("Integração - Autenticação", () => {
-    // Garante que as tabelas existam antes de rodar os testes
     before(async () => {
         await sequelize.sync({ force: true });
     });
 
-    // Limpa o banco de dados antes de cada teste para garantir um ambiente limpo
     beforeEach(async () => {
         await User.destroy({ where: {} });
     });
 
-    // Helper para criar usuário e evitar repetição de código
     const createUser = async (email: string, password = "password123") => {
         return User.create({
             name: "Integration User",
@@ -28,7 +25,6 @@ describe("Integração - Autenticação", () => {
         it("deve realizar login com sucesso e retornar um token", async () => {
             await createUser("integration@test.com", "password123");
 
-            // 2. Ação: Fazer a requisição HTTP real
             const res = await request(app)
                 .post("/auth/login")
                 .send({
@@ -36,7 +32,6 @@ describe("Integração - Autenticação", () => {
                     password: "password123"
                 });
 
-            // 3. Verificação: Checar status e corpo da resposta
             expect(res.status, `Falha no login. Resposta: ${JSON.stringify(res.body)}`).to.equal(200);
             expect(res.body).to.have.property("token");
             expect(res.body.token).to.be.a("string");
@@ -74,7 +69,6 @@ describe("Integração - Autenticação", () => {
         it("deve realizar logout com sucesso", async () => {
             await createUser("logout@test.com", "password123");
 
-            // 1. Login para obter token válido
             const loginRes = await request(app)
                 .post("/auth/login")
                 .send({
@@ -83,10 +77,8 @@ describe("Integração - Autenticação", () => {
                 });
 
             const token = loginRes.body.token;
-            // Garante que temos um token antes de tentar o logout
             expect(token, `Falha no login pré-logout. Resposta: ${JSON.stringify(loginRes.body)}`).to.be.a("string");
 
-            // 2. Logout enviando o token no header
             const res = await request(app)
                 .post("/auth/logout")
                 .set("Authorization", `Bearer ${token}`);

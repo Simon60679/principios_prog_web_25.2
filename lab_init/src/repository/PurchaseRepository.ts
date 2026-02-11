@@ -10,12 +10,10 @@ import User from "../models/User";
 
 export class PurchaseRepository {
 
-    // Método principal para processar a compra
     async finalizePurchase(userId: number) {
         const t = await sequelize.transaction();
         let totalAmount = 0;
 
-        // Estrutura para agrupar itens vendidos por cada vendedor
         const salesBySeller: {
             [sellerId: number]: {
                 totalAmount: number,
@@ -24,7 +22,6 @@ export class PurchaseRepository {
         } = {};
 
         try {
-            // 1. Obter os itens do carrinho (Incluindo o Produto e, através dele, o VENDEDOR)
             const cart = await Cart.findByPk(userId, {
                 include: [{
                     model: CartItem,
@@ -38,7 +35,6 @@ export class PurchaseRepository {
                 transaction: t
             });
 
-            // Validação de Carrinho Vazio
             if (!cart || !cart.items || cart.items.length === 0) {
                 throw new Error("Carrinho vazio ou não encontrado.");
             }
@@ -49,31 +45,27 @@ export class PurchaseRepository {
                 purchaseDate: new Date(),
             }, { transaction: t });
 
-            const itemsToCreate: any[] = []; // Para PurchaseItem
+            const itemsToCreate: any[] = [];
 
-            // 3. Processar e Agrupar por Vendedor
             for (const item of cart.items) {
                 const product = item.product;
                 if (!product || !product.seller) continue;
 
-                const sellerId = product.userId; // O ID do dono do produto
+                const sellerId = product.userId;
                 const price = Number(product.price);
                 const quantity = item.quantity;
                 const subtotal = price * quantity;
 
-                totalAmount += subtotal; // Soma o total da compra do cliente
+                totalAmount += subtotal;
 
                 const currentStock = product.stock;
 
-                // Validação de estoque
                 if (quantity > currentStock) {
                     throw new Error(`Estoque insuficiente para o produto: ${product.name}. Disponível: ${currentStock}, Solicitado: ${quantity}.`);
                 }
 
-                // Redução de estoque
                 const newStock = currentStock - quantity;
                 await product.update({ stock: newStock }, { transaction: t });
-                // Agrupar para registro de venda
                 if (!salesBySeller[sellerId]) {
                     salesBySeller[sellerId] = { totalAmount: 0, items: [] };
                 }
@@ -85,9 +77,7 @@ export class PurchaseRepository {
                     quantity: quantity,
                     subtotal: subtotal,
                 });
-                // ----------------------------------------------------
 
-                // Prepara o Item para o Histórico de COMPRA do CLIENTE (PurchaseItem)
                 itemsToCreate.push({
                     purchaseId: purchaseRecord.id,
                     productName: product.name,
@@ -97,41 +87,32 @@ export class PurchaseRepository {
                 });
             }
 
-            // 4. Criar todas as vendas e seus itens
             for (const sellerId in salesBySeller) {
                 const saleData = salesBySeller[sellerId];
 
-                // A. Cria o registro Sale (Venda)
                 const sale = await Sale.create({
                     sellerId: Number(sellerId),
                     totalAmount: saleData.totalAmount,
                     saleDate: new Date(),
                 }, { transaction: t });
 
-                // B. Adiciona o ID da venda aos itens
                 const saleItemsToCreate = saleData.items.map(item => ({
                     ...item,
-                    saleId: sale.id, // Liga ao registro Sale recém-criado
+                    saleId: sale.id,
                 }));
 
-                // C. Cria os Itens de Venda (SaleItem)
                 await SaleItem.bulkCreate(saleItemsToCreate, { transaction: t });
             }
 
 
-            // 5. Criar itens de compra para o cliente (PurchaseItem)
             await PurchaseItem.bulkCreate(itemsToCreate, { transaction: t });
 
-            // 6. Atualizar o valor total na Purchase
             await purchaseRecord.update({ totalAmount: totalAmount }, { transaction: t });
 
-            // 7. Deletar todos os itens do carrinho
             await CartItem.destroy({ where: { cartId: userId }, transaction: t });
 
-            // 8. Confirma a transação
             await t.commit();
 
-            // Retorna o registro de compra completo
             return await Purchase.findByPk(purchaseRecord.id, {
                 include: [{ model: PurchaseItem, as: 'items' }],
             });
