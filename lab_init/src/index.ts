@@ -17,15 +17,29 @@ import transactionController from "./controllers/TransactionController";
 const app = express();
 app.use(express.json());
 
-// Configuração do rate limiter
+// Configuração do rate limiter global
 const globalLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // Janela de 5 minutos
-  max: 10,// Limite de 10 requisições por IP dentro da janela acima
+  windowMs: 15 * 60 * 1000, // Janela de 15 minutos
+  max: 100,// Limite de 100 requisições por IP dentro da janela acima
   message: {
-    message: "Muitas requisições vindas deste IP, tente novamente após 5 minutos."
+    message: "Muitas requisições vindas deste IP, tente novamente após 15 minutos."
   },
   standardHeaders: true, // Retorna informações de limite nos headers `RateLimit-*`
   legacyHeaders: false, // Desabilita os headers `X-RateLimit-*`
+});
+
+// Configuração de lmite mais rigoroso para criação de contas
+const createUserLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hora
+  max: 5, // Apenas 5 contas por hora por IP
+  message: { message: "Limite de criação de contas excedido. Tente mais tarde." }
+});
+
+// Limite para Checkout
+const checkoutLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000, // 10 minutos
+  max: 3, 
+  message: { message: "Muitas tentativas de compra. Aguarde um momento." }
 });
 
 // Aplicar rate limiter em todas as rotas
@@ -39,7 +53,7 @@ app.get('/protected', authenticate, (req, res) => {
 });
 
 // --- ROTAS DO USUÁRIO ---
-app.post("/users", userController.createUser);
+app.post("/users", createUserLimiter, userController.createUser);
 app.get("/users", authenticate, userController.getAllUsers);
 app.patch("/users/:id", authenticate, userController.updateUser);
 app.delete("/users/:id", authenticate, userController.deleteUser);
@@ -57,7 +71,7 @@ app.delete("/cart/:userId/item/:productId", authenticate, cartController.removeI
 app.patch("/cart/:userId/item/:productId/decrease", authenticate, cartController.decreaseItem);
 
 // --- ROTAS DE TRANSAÇÃO (COMPRA/VENDA) ---
-app.post("/checkout/:userId", authenticate, transactionController.checkout);
+app.post("/checkout/:userId", checkoutLimiter, authenticate, transactionController.checkout);
 app.get("/users/:userId/purchases", authenticate, transactionController.getPurchasesHistory);
 app.get("/users/:userId/sales", authenticate, transactionController.getSalesHistory);
 
