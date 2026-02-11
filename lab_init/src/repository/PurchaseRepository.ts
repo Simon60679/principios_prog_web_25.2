@@ -9,66 +9,64 @@ import SaleItem from "../models/SaleItem";
 import User from "../models/User";
 
 export class PurchaseRepository {
-    
+
     // Método principal para processar a compra
     async finalizePurchase(userId: number) {
         const t = await sequelize.transaction();
         let totalAmount = 0;
-        
+
         // Estrutura para agrupar itens vendidos por cada vendedor
-        const salesBySeller: { 
-            [sellerId: number]: { 
-                totalAmount: number, 
-                items: any[] 
-            } 
+        const salesBySeller: {
+            [sellerId: number]: {
+                totalAmount: number,
+                items: any[]
+            }
         } = {};
 
         try {
             // 1. Obter os itens do carrinho (Incluindo o Produto e, através dele, o VENDEDOR)
             const cart = await Cart.findByPk(userId, {
-                include: [{ 
-                    model: CartItem, 
-                    as: 'items', 
-                    include: [{ 
-                        model: Product, 
+                include: [{
+                    model: CartItem,
+                    as: 'items',
+                    include: [{
+                        model: Product,
                         as: 'product',
                         include: [{ model: User, as: 'seller' }]
-                    }] 
+                    }]
                 }],
-                transaction: t 
+                transaction: t
             });
 
             // Validação de Carrinho Vazio
             if (!cart || !cart.items || cart.items.length === 0) {
-                await t.rollback();
                 throw new Error("Carrinho vazio ou não encontrado.");
             }
 
-            const purchaseRecord = await Purchase.create({ 
+            const purchaseRecord = await Purchase.create({
                 userId: userId,
-                totalAmount: 0, 
+                totalAmount: 0,
                 purchaseDate: new Date(),
             }, { transaction: t });
-            
+
             const itemsToCreate: any[] = []; // Para PurchaseItem
 
             // 3. Processar e Agrupar por Vendedor
             for (const item of cart.items) {
                 const product = item.product;
-                if (!product || !product.seller) continue; 
-                
+                if (!product || !product.seller) continue;
+
                 const sellerId = product.userId; // O ID do dono do produto
                 const price = Number(product.price);
                 const quantity = item.quantity;
                 const subtotal = price * quantity;
-                
+
                 totalAmount += subtotal; // Soma o total da compra do cliente
 
                 const currentStock = product.stock;
 
                 // Validação de estoque
                 if (quantity > currentStock) {
-                    await t.rollback();
                     throw new Error(`Estoque insuficiente para o produto: ${product.name}. Disponível: ${currentStock}, Solicitado: ${quantity}.`);
                 }
 
@@ -143,7 +141,7 @@ export class PurchaseRepository {
             throw error;
         }
     }
-    
+
     async getPurchasesByUserId(userId: number) {
         return await Purchase.findAll({
             where: { userId: userId },

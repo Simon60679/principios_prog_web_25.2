@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import purchaseService from "../services/PurchaseService";
-import saleRepository from "../repository/SaleRepository"; // Usaremos o repositório diretamente aqui
+import saleRepository from "../repository/SaleRepository"; 
 
 class TransactionController {
     async checkout(req: Request, res: Response) {
@@ -15,9 +15,16 @@ class TransactionController {
             return res.status(201).json({ message: "Compra finalizada com sucesso!", purchase: purchase });
 
         } catch (error: any) {
-            console.error("Erro ao finalizar compra:", error);
+            // Loga apenas se não estiver em ambiente de teste para não poluir o console
+            if (process.env.NODE_ENV !== 'test') {
+                console.error("Erro ao finalizar compra:", error);
+            }
+
             if (error.message.includes("Carrinho vazio")) {
                 return res.status(400).json({ message: error.message });
+            }
+            if (error.message.includes("Estoque insuficiente")) {
+                return res.status(409).json({ message: error.message });
             }
             return res.status(500).json({ message: "Erro interno ao processar a compra", error: error.message });
         }
