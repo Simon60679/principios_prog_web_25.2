@@ -2,6 +2,27 @@ import { Request, Response } from "express";
 import cartService from "../services/CartService";
 
 class CartController {
+    /**
+     * @swagger
+     * /users/{userId}/cart:
+     *   get:
+     *     summary: Recupera o carrinho de compras de um usuário
+     *     tags: [Carrinho]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: userId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do usuário
+     *     responses:
+     *       200:
+     *         description: Detalhes do carrinho retornados com sucesso
+     *       404:
+     *         description: Carrinho não encontrado
+     */
     async findCart(req: Request, res: Response) {
         try {
             const userId = parseInt(req.params.userId, 10);
@@ -21,6 +42,37 @@ class CartController {
         }
     }
 
+    /**
+     * @swagger
+     * /cart/add:
+     *   post:
+     *     summary: Adiciona um item ao carrinho
+     *     tags: [Carrinho]
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - userId
+     *               - productId
+     *               - quantity
+     *             properties:
+     *               userId:
+     *                 type: integer
+     *               productId:
+     *                 type: integer
+     *               quantity:
+     *                 type: integer
+     *     responses:
+     *       201:
+     *         description: Item adicionado ao carrinho
+     *       400:
+     *         description: Dados inválidos
+     */
     async addItem(req: Request, res: Response) {
         try {
             const { userId, productId, quantity } = req.body;
@@ -37,6 +89,31 @@ class CartController {
         }
     }
 
+    /**
+     * @swagger
+     * /cart/{userId}/item/{productId}:
+     *   delete:
+     *     summary: Remove um item do carrinho completamente
+     *     tags: [Carrinho]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: userId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *       - in: path
+     *         name: productId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *     responses:
+     *       200:
+     *         description: Item removido com sucesso
+     *       404:
+     *         description: Item não encontrado no carrinho
+     */
     async removeItem(req: Request, res: Response) {
         try {
             const userId = parseInt(req.params.userId, 10);
@@ -58,6 +135,41 @@ class CartController {
         }
     }
 
+    /**
+     * @swagger
+     * /cart/{userId}/item/{productId}/decrease:
+     *   patch:
+     *     summary: Diminui a quantidade de um item no carrinho
+     *     tags: [Carrinho]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: userId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *       - in: path
+     *         name: productId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               quantity:
+     *                 type: integer
+     *                 description: Quantidade a ser decrementada
+     *     responses:
+     *       200:
+     *         description: Quantidade atualizada ou item removido se chegar a zero
+     *       404:
+     *         description: Item não encontrado
+     */
     async decreaseItem(req: Request, res: Response) {
         try {
             const userId = parseInt(req.params.userId, 10);

@@ -3,6 +3,29 @@ import purchaseService from "../services/PurchaseService";
 import saleRepository from "../repository/SaleRepository";
 
 class TransactionController {
+    /**
+     * @swagger
+     * /checkout/{userId}:
+     *   post:
+     *     summary: Finaliza a compra dos itens no carrinho do usuário
+     *     tags: [Transações]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: userId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do usuário
+     *     responses:
+     *       201:
+     *         description: Compra finalizada com sucesso
+     *       400:
+     *         description: Carrinho vazio ou erro de validação
+     *       409:
+     *         description: Estoque insuficiente
+     */
     async checkout(req: Request, res: Response) {
         try {
             const userId = parseInt(req.params.userId, 10);
@@ -33,6 +56,26 @@ class TransactionController {
         }
     }
 
+    /**
+     * @swagger
+     * /users/{userId}/purchases:
+     *   get:
+     *     summary: Obtém o histórico de compras de um usuário
+     *     tags: [Transações]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: userId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *     responses:
+     *       200:
+     *         description: Histórico de compras retornado com sucesso
+     *       404:
+     *         description: Nenhuma compra encontrada
+     */
     async getPurchasesHistory(req: Request, res: Response) {
         try {
             const userId = parseInt(req.params.userId, 10);
@@ -58,6 +101,26 @@ class TransactionController {
         }
     }
 
+    /**
+     * @swagger
+     * /users/{userId}/sales:
+     *   get:
+     *     summary: Obtém o histórico de vendas de um usuário (vendedor)
+     *     tags: [Transações]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: userId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *     responses:
+     *       200:
+     *         description: Histórico de vendas retornado com sucesso
+     *       404:
+     *         description: Nenhuma venda encontrada
+     */
     async getSalesHistory(req: Request, res: Response) {
         try {
             const sellerId = parseInt(req.params.userId, 10);

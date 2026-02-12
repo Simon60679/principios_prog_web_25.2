@@ -3,6 +3,32 @@ import { comparePassword, generateToken } from '../utils/auth';
 import User from '../models/User';
 import { tokenBlacklist } from '../utils/tokenBlacklist';
 
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Autentica um usuário e retorna um token JWT
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login realizado com sucesso
+ *       400:
+ *         description: Credenciais inválidas
+ */
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;
 
@@ -26,6 +52,18 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * @swagger
+ * /auth/logout:
+ *   post:
+ *     summary: Realiza logout invalidando o token atual
+ *     tags: [Autenticação]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logout realizado com sucesso
+ */
 export const logout = (req: Request, res: Response) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
   if (token) {

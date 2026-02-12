@@ -11,6 +11,31 @@ export interface CartItemAttributes {
 export interface CartItemCreationAttributes
   extends CartItemAttributes { }
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CartItem:
+ *       type: object
+ *       required:
+ *         - cartId
+ *         - productId
+ *         - quantity
+ *       properties:
+ *         cartId:
+ *           type: integer
+ *           description: ID do carrinho (mesmo que userId)
+ *         productId:
+ *           type: integer
+ *           description: ID do produto
+ *         quantity:
+ *           type: integer
+ *           description: Quantidade do produto no carrinho
+ *       example:
+ *         cartId: 1
+ *         productId: 5
+ *         quantity: 2
+ */
 export class CartItem
   extends Model<CartItemAttributes, CartItemCreationAttributes>
   implements CartItemAttributes {

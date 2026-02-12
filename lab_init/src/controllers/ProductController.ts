@@ -84,6 +84,41 @@ class ProductController {
         }
     }
 
+    /**
+     * @swagger
+     * /products/{id}/stock:
+     *   patch:
+     *     summary: Atualiza o estoque de um produto
+     *     tags: [Produtos]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do produto
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - stock
+     *             properties:
+     *               stock:
+     *                 type: integer
+     *                 description: Nova quantidade em estoque
+     *     responses:
+     *       200:
+     *         description: Estoque atualizado com sucesso
+     *       400:
+     *         description: Dados inválidos
+     *       404:
+     *         description: Produto não encontrado
+     */
     async updateStock(req: Request, res: Response) {
         try {
             const productId = parseInt(req.params.id, 10);
@@ -113,6 +148,31 @@ class ProductController {
         }
     }
 
+    /**
+     * @swagger
+     * /products/{id}:
+     *   delete:
+     *     summary: Deleta um produto
+     *     tags: [Produtos]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do produto
+     *     responses:
+     *       200:
+     *         description: Produto deletado com sucesso
+     *       400:
+     *         description: ID inválido
+     *       404:
+     *         description: Produto não encontrado
+     *       409:
+     *         description: Não é possível deletar produto com dependências
+     */
     async deleteProduct(req: Request, res: Response) {
         try {
             const productId = parseInt(req.params.id, 10);

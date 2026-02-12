@@ -20,6 +20,18 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/auth", authRoutes);
 
+/**
+ * @swagger
+ * /protected:
+ *   get:
+ *     summary: Rota de teste para verificar autenticação
+ *     tags: [Geral]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token válido e acesso autorizado
+ */
 app.get('/protected', authenticate, (req, res) => {
     res.status(200).json({ message: 'Você tem acesso a esta rota protegida.' });
 });

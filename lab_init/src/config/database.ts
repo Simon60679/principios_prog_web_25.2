@@ -3,6 +3,10 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+/**
+ * Instância do Sequelize configurada para conexão com o banco de dados.
+ * Utiliza variáveis de ambiente para definir as credenciais e parâmetros de conexão.
+ */
 const sequelize = new Sequelize({
   dialect: (process.env.DB_DIALECT as "postgres" | "mysql") || "postgres",
   host: process.env.DB_HOST || "localhost",

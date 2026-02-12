@@ -1,3 +1,7 @@
+/**
+ * Ponto de entrada da aplicação.
+ * Inicializa a conexão com o banco de dados e coloca o servidor Express para escutar na porta definida.
+ */
 import app from "./app";
 import sequelize from "./config/database";
 

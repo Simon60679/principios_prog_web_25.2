@@ -10,10 +10,21 @@ export interface AddItemToCartData {
 }
 
 export class CartRepository {
+    /**
+     * Cria um novo registro de carrinho.
+     * @param cart - Dados para criação do carrinho.
+     * @param options - Opções adicionais do Sequelize (ex: transação).
+     * @returns O carrinho criado.
+     */
     async createCart(cart: CartCreationAttributes, options?: { transaction?: Transaction }) {
         return await Cart.create(cart, options);
     }
 
+    /**
+     * Busca um carrinho pelo ID (que é o mesmo ID do usuário), incluindo os itens e detalhes dos produtos.
+     * @param userId - O ID do usuário/carrinho.
+     * @returns O carrinho com seus itens ou null.
+     */
     async findCartById(userId: number) {
         return await Cart.findByPk(userId, {
             include: [{
@@ -30,6 +41,14 @@ export class CartRepository {
         });
     }
 
+    /**
+     * Adiciona um item ao carrinho ou atualiza a quantidade se já existir.
+     * Verifica se há estoque suficiente antes de adicionar.
+     * @param data - Objeto contendo userId, productId e quantity.
+     * @param options - Opções de transação.
+     * @throws Error se a quantidade for inválida, produto não existir ou estoque insuficiente.
+     * @returns O item do carrinho atualizado ou criado.
+     */
     async addItemToCart({ userId, productId, quantity }: AddItemToCartData, options?: { transaction?: Transaction }) {
 
         if (quantity <= 0) {
@@ -80,6 +99,12 @@ export class CartRepository {
         });
     }
 
+    /**
+     * Remove um item específico do carrinho completamente.
+     * @param userId - O ID do usuário dono do carrinho.
+     * @param productId - O ID do produto a ser removido.
+     * @returns O número de linhas deletadas.
+     */
     async removeItemFromCart(userId: number, productId: number) {
         const deletedRows = await CartItem.destroy({
             where: {
@@ -91,6 +116,14 @@ export class CartRepository {
         return deletedRows;
     }
 
+    /**
+     * Diminui a quantidade de um item no carrinho. Se a quantidade resultante for <= 0, o item é removido.
+     * @param userId - O ID do usuário.
+     * @param productId - O ID do produto.
+     * @param quantityToDecrease - Quantidade a ser subtraída.
+     * @throws Error se a quantidade a diminuir for inválida.
+     * @returns Um objeto indicando se foi deletado ou o item atualizado, ou null se não encontrado.
+     */
     async decreaseItemQuantity(userId: number, productId: number, quantityToDecrease: number) {
 
         if (quantityToDecrease <= 0) {

@@ -10,6 +10,15 @@ import User from "../models/User";
 
 export class PurchaseRepository {
 
+    /**
+     * Realiza a finalização de uma compra (Checkout).
+     * Executa uma transação que: valida o carrinho, verifica estoque, cria o registro de compra,
+     * atualiza o estoque dos produtos, gera registros de venda para os vendedores e limpa o carrinho.
+     * 
+     * @param userId - O ID do usuário que está comprando.
+     * @throws Error se o carrinho estiver vazio, estoque insuficiente ou falha na transação.
+     * @returns A compra criada com seus itens.
+     */
     async finalizePurchase(userId: number) {
         const t = await sequelize.transaction();
         let totalAmount = 0;
@@ -123,6 +132,11 @@ export class PurchaseRepository {
         }
     }
 
+    /**
+     * Busca o histórico de compras de um usuário.
+     * @param userId - O ID do usuário.
+     * @returns Lista de compras realizadas pelo usuário, incluindo os itens.
+     */
     async getPurchasesByUserId(userId: number) {
         return await Purchase.findAll({
             where: { userId: userId },

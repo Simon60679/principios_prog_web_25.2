@@ -13,6 +13,41 @@ export interface SaleItemAttributes {
 export interface SaleItemCreationAttributes
   extends Optional<SaleItemAttributes, "id" | "subtotal"> { }
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     SaleItem:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID do item da venda
+ *         saleId:
+ *           type: integer
+ *           description: ID da venda associada
+ *         productName:
+ *           type: string
+ *           description: Nome do produto vendido
+ *         productPrice:
+ *           type: number
+ *           format: float
+ *           description: Preço do produto na venda
+ *         quantity:
+ *           type: integer
+ *           description: Quantidade vendida
+ *         subtotal:
+ *           type: number
+ *           format: float
+ *           description: Subtotal do item
+ *       example:
+ *         id: 1
+ *         saleId: 5
+ *         productName: "Mouse Gamer"
+ *         productPrice: 150.00
+ *         quantity: 2
+ *         subtotal: 300.00
+ */
 export class SaleItem
   extends Model<SaleItemAttributes, SaleItemCreationAttributes>
   implements SaleItemAttributes {

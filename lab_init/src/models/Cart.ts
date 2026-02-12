@@ -9,6 +9,21 @@ export interface CartAttributes {
 
 export interface CartCreationAttributes { }
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Cart:
+ *       type: object
+ *       required:
+ *         - userId
+ *       properties:
+ *         userId:
+ *           type: integer
+ *           description: ID do usuário dono do carrinho
+ *       example:
+ *         userId: 1
+ */
 export class Cart
   extends Model<CartAttributes, CartCreationAttributes>
   implements CartAttributes {

@@ -15,6 +15,44 @@ export interface ProductAttributes {
 export interface ProductCreationAttributes
   extends Optional<ProductAttributes, "id" | "stock"> { }
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Product:
+ *       type: object
+ *       required:
+ *         - name
+ *         - price
+ *         - description
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID do produto
+ *         userId:
+ *           type: integer
+ *           description: ID do vendedor (usuário)
+ *         name:
+ *           type: string
+ *           description: Nome do produto
+ *         price:
+ *           type: number
+ *           format: float
+ *           description: Preço do produto
+ *         stock:
+ *           type: integer
+ *           description: Quantidade em estoque
+ *         description:
+ *           type: string
+ *           description: Descrição do produto
+ *       example:
+ *         id: 1
+ *         userId: 1
+ *         name: "Notebook Gamer"
+ *         price: 4500.00
+ *         stock: 10
+ *         description: "Notebook de alta performance"
+ */
 export class Product
   extends Model<ProductAttributes, ProductCreationAttributes>
   implements ProductAttributes {

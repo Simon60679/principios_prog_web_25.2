@@ -11,6 +11,33 @@ export interface SaleAttributes {
 export interface SaleCreationAttributes
   extends Optional<SaleAttributes, "id" | "saleDate" | "totalAmount"> { }
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Sale:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID da venda
+ *         sellerId:
+ *           type: integer
+ *           description: ID do vendedor
+ *         totalAmount:
+ *           type: number
+ *           format: float
+ *           description: Valor total da venda
+ *         saleDate:
+ *           type: string
+ *           format: date-time
+ *           description: Data e hora da venda
+ *       example:
+ *         id: 1
+ *         sellerId: 1
+ *         totalAmount: 150.00
+ *         saleDate: "2023-10-27T14:30:00Z"
+ */
 export class Sale
   extends Model<SaleAttributes, SaleCreationAttributes>
   implements SaleAttributes {
