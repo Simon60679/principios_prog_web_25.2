@@ -12,6 +12,35 @@ export interface UserAttributes {
 export interface UserCreationAttributes
   extends Optional<UserAttributes, "id"> { }
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       required:
+ *         - name
+ *         - email
+ *         - password
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: ID auto-gerado do usuário
+ *         name:
+ *           type: string
+ *           description: Nome do usuário
+ *         email:
+ *           type: string
+ *           description: Email do usuário
+ *         password:
+ *           type: string
+ *           description: Senha do usuário (criptografada)
+ *       example:
+ *         id: 1
+ *         name: John Doe
+ *         email: john@example.com
+ *         password: password123
+ */
 export class User
   extends Model<UserAttributes, UserCreationAttributes>
   implements UserAttributes {

@@ -3,6 +3,30 @@ import userService from "../services/UserService";
 import { UserAttributes } from "../models/User";
 
 class UserController {
+    /**
+     * @swagger
+     * /users:
+     *   post:
+     *     summary: Cria um novo usuário
+     *     tags: [Usuários]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/User'
+     *     responses:
+     *       201:
+     *         description: Usuário criado com sucesso
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/User'
+     *       400:
+     *         description: Dados inválidos
+     *       409:
+     *         description: Email já cadastrado
+     */
     async createUser(req: Request, res: Response) {
         try {
             const { name, email, password } = req.body;
@@ -24,6 +48,24 @@ class UserController {
         }
     }
 
+    /**
+     * @swagger
+     * /users:
+     *   get:
+     *     summary: Retorna a lista de todos os usuários
+     *     tags: [Usuários]
+     *     security:
+     *       - bearerAuth: []
+     *     responses:
+     *       200:
+     *         description: Lista de usuários
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 $ref: '#/components/schemas/User'
+     */
     async getAllUsers(req: Request, res: Response) {
         try {
             const users = await userService.getAllUsers();
@@ -34,6 +76,27 @@ class UserController {
         }
     }
 
+    /**
+     * @swagger
+     * /users/{id}:
+     *   delete:
+     *     summary: Deleta um usuário pelo ID
+     *     tags: [Usuários]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do usuário
+     *     responses:
+     *       204:
+     *         description: Usuário deletado com sucesso
+     *       404:
+     *         description: Usuário não encontrado
+     */
     async deleteUser(req: Request, res: Response) {
         try {
             const id = parseInt(req.params.id, 10);
@@ -53,6 +116,33 @@ class UserController {
         }
     }
 
+    /**
+     * @swagger
+     * /users/{id}:
+     *   patch:
+     *     summary: Atualiza dados de um usuário
+     *     tags: [Usuários]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do usuário
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             $ref: '#/components/schemas/User'
+     *     responses:
+     *       200:
+     *         description: Usuário atualizado com sucesso
+     *       404:
+     *         description: Usuário não encontrado
+     */
     async updateUser(req: Request, res: Response) {
         try {
             const id = parseInt(req.params.id, 10);

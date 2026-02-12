@@ -2,6 +2,44 @@ import { Request, Response } from "express";
 import productService from "../services/ProductService";
 
 class ProductController {
+    /**
+     * @swagger
+     * /products:
+     *   post:
+     *     summary: Cria um novo produto
+     *     tags: [Produtos]
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - name
+     *               - price
+     *               - description
+     *             properties:
+     *               name:
+     *                 type: string
+     *               price:
+     *                 type: number
+     *               description:
+     *                 type: string
+     *               stock:
+     *                 type: number
+     *             $ref: '#/components/schemas/Product'
+     *     responses:
+     *       201:
+     *         description: Produto criado com sucesso
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Product'
+     *       400:
+     *         description: Dados inválidos
+     */
     async createProduct(req: Request, res: Response) {
         try {
             const { name, price, description, stock } = req.body;
@@ -19,6 +57,23 @@ class ProductController {
         }
     }
 
+    /**
+     * @swagger
+     * /products:
+     *   get:
+     *     summary: Retorna a lista de todos os produtos
+     *     tags: [Produtos]
+     *     responses:
+     *       200:
+     *         description: Lista de produtos retornada com sucesso
+     *         description: A lista de produtos.
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 $ref: '#/components/schemas/Product'
+     */
     async getAllProducts(req: Request, res: Response) {
         try {
             const products = await productService.getAllProducts();

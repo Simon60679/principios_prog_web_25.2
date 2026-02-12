@@ -5,6 +5,8 @@ import { authenticate } from './middlewares/authMiddleware';
 import authRoutes from './routes/authRoutes';
 import express from "express";
 import './models/associations';
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger";
 
 import userController from "./controllers/UserController";
 import productController from "./controllers/ProductController";
@@ -13,6 +15,8 @@ import transactionController from "./controllers/TransactionController";
 
 const app = express();
 app.use(express.json());
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/auth", authRoutes);
 
