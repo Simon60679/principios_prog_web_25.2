@@ -7,6 +7,10 @@ import PurchaseItem from './PurchaseItem';
 import Sale from './Sale';
 import SaleItem from './SaleItem';
 
+/**
+ * Define as associações (relacionamentos) entre os modelos do Sequelize.
+ * Configura chaves estrangeiras, comportamentos de deleção (CASCADE) e aliases para consultas.
+ */
 User.hasMany(Product, {
     foreignKey: 'userId',
     as: 'productsUser',

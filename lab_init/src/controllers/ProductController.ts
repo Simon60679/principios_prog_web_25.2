@@ -66,7 +66,6 @@ class ProductController {
      *     responses:
      *       200:
      *         description: Lista de produtos retornada com sucesso
-     *         description: A lista de produtos.
      *         content:
      *           application/json:
      *             schema:
