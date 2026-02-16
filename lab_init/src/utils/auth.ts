@@ -6,6 +6,13 @@ dotenv.config();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
+export interface TokenPayload {
+  id: number;
+  username: string;
+  iat?: number;
+  exp?: number;
+}
+
 /**
  * Gera um hash seguro para a senha utilizando bcrypt.
  * @param password - A senha em texto plano.
@@ -39,8 +46,9 @@ export const generateToken = (userId: number, username: string): string => {
 /**
  * Verifica a validade de um token JWT.
  * @param token - O token JWT a ser verificado.
- * @returns O payload decodificado se o token for válido. Lança um erro se inválido.
+ * @returns O payload decodificado (TokenPayload) se o token for válido.
+ * @throws {Error} Se o token for inválido ou expirado.
  */
-export const verifyToken = (token: string): any => {
-  return jwt.verify(token, JWT_SECRET);
+export const verifyToken = (token: string): TokenPayload => {
+  return jwt.verify(token, JWT_SECRET) as TokenPayload;
 };

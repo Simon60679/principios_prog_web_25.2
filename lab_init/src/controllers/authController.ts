@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { comparePassword, generateToken } from '../utils/auth';
 import User from '../models/User';
 import { tokenBlacklist } from '../utils/tokenBlacklist';
+import userService from '../services/UserService';
 
 /**
  * @swagger
@@ -49,6 +50,39 @@ export const login = async (req: Request, res: Response) => {
     res.status(200).json({ message: 'Login realizado com sucesso', token });
   } catch (err) {
     res.status(500).json({ message: 'Erro ao realizar login', error: err });
+  }
+};
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Registra um novo usuário
+ *     tags: [Autenticação]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/User'
+ *     responses:
+ *       201:
+ *         description: Usuário registrado com sucesso
+ *       409:
+ *         description: Email já cadastrado
+ */
+export const register = async (req: Request, res: Response) => {
+  try {
+    const { name, email, password } = req.body;
+    const user = await userService.createUser({ name, email, password });
+    const userResponse = user.toJSON();
+    delete (userResponse as any).password;
+    res.status(201).json(userResponse);
+  } catch (error: any) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(409).json({ message: "Este email já está cadastrado." });
+    }
+    res.status(500).json({ message: 'Erro ao registrar usuário', error });
   }
 };
 
