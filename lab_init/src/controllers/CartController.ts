@@ -30,6 +30,10 @@ class CartController {
                 return res.status(400).json({ message: "ID de usuário inválido." });
             }
 
+            if (userId !== (req as any).user.id) {
+                return res.status(403).json({ message: "Acesso negado. Você não pode acessar o carrinho de outro usuário." });
+            }
+
             const cartDetails = await cartService.findCartDetails(userId);
             if (!cartDetails) {
                 return res.status(404).json({ message: "Carrinho não encontrado para este usuário." });
@@ -80,10 +84,20 @@ class CartController {
                 return res.status(400).json({ message: "userId, productId e uma quantity positiva são obrigatórios." });
             }
 
+            if (userId !== (req as any).user.id) {
+                return res.status(403).json({ message: "Acesso negado. Você não pode adicionar itens ao carrinho de outro usuário." });
+            }
+
             const cartItem = await cartService.addItemToCart({ userId, productId, quantity });
             return res.status(201).json(cartItem);
 
         } catch (error: any) {
+            if (error.message.includes("não encontrado")) {
+                return res.status(404).json({ message: error.message });
+            }
+            if (error.message.includes("Estoque máximo disponível")) {
+                return res.status(400).json({ message: error.message });
+            }
             console.error("Erro ao adicionar item ao carrinho:", error);
             return res.status(500).json({ message: "Erro ao processar item do carrinho", error: error.message });
         }
@@ -120,6 +134,10 @@ class CartController {
             const productId = parseInt(req.params.productId, 10);
             if (isNaN(userId) || isNaN(productId)) {
                 return res.status(400).json({ message: "IDs de usuário ou produto inválidos." });
+            }
+
+            if (userId !== (req as any).user.id) {
+                return res.status(403).json({ message: "Acesso negado. Você não pode remover itens do carrinho de outro usuário." });
             }
 
             const deleted = await cartService.removeItemFromCart(userId, productId);
@@ -178,6 +196,10 @@ class CartController {
 
             if (isNaN(userId) || isNaN(productId) || typeof quantityToDecrease !== 'number' || quantityToDecrease <= 0) {
                 return res.status(400).json({ message: "Dados inválidos." });
+            }
+
+            if (userId !== (req as any).user.id) {
+                return res.status(403).json({ message: "Acesso negado. Você não pode alterar o carrinho de outro usuário." });
             }
 
             const result = await cartService.decreaseItemQuantity(userId, productId, quantityToDecrease);
