@@ -29,12 +29,15 @@ class TransactionController {
     async checkout(req: Request, res: Response) {
         try {
             const userId = parseInt(req.params.userId, 10);
+            const userAuthenticated = (req as any).user.id;
             if (isNaN(userId)) {
                 return res.status(400).json({ message: "ID de usuário inválido." });
             }
 
-            if (userId !== (req as any).user.id) {
-                return res.status(403).json({ message: "Acesso negado. Você não pode finalizar compras para outro usuário." });
+            if (userAuthenticated !== userId) {
+                return res.status(403).json({ 
+                    message: "Ação não permitida. Você só pode finalizar seu próprio carrinho." 
+                });
             }
 
             const purchase = await purchaseService.finalizePurchase(userId);
