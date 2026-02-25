@@ -3,14 +3,19 @@ import { expect } from "chai";
 import app from "../../src/app";
 import Product from "../../src/models/Product";
 import User from "../../src/models/User";
+import Cart from "../../src/models/Cart";
+import CartItem from "../../src/models/CartItem";
 import sequelize from "../../src/config/database";
 
 describe("Integração - Produtos", () => {
     before(async () => {
         await sequelize.sync({ force: true });
+        await sequelize.query("PRAGMA foreign_keys = ON;");
     });
 
     beforeEach(async () => {
+        await CartItem.destroy({ where: {} });
+        await Cart.destroy({ where: {} });
         await Product.destroy({ where: {} });
         await User.destroy({ where: {} });
     });
@@ -126,6 +131,38 @@ describe("Integração - Produtos", () => {
             expect(res.status).to.equal(200);
             expect(res.body.product.stock).to.equal(20);
         });
+
+        it("deve retornar 401 se não autenticado", async () => {
+            const res = await request(app)
+                .patch("/products/1/stock")
+                .send({ stock: 20 });
+
+            expect(res.status).to.equal(401);
+        });
+
+        it("deve retornar 404 se o produto não existir", async () => {
+            const token = await createUserAndGetToken();
+
+            const res = await request(app)
+                .patch("/products/99999/stock")
+                .set("Authorization", `Bearer ${token}`)
+                .send({ stock: 10 });
+
+            expect(res.status).to.equal(404);
+        });
+
+        it("deve retornar 400 se tentar definir estoque negativo", async () => {
+            const token = await createUserAndGetToken();
+            const user = await User.findOne({ where: { email: "owner@test.com" } });
+            const product = await Product.create({ name: "P", price: 1, description: "D", stock: 1, userId: user!.id });
+
+            const res = await request(app)
+                .patch(`/products/${product.id}/stock`)
+                .set("Authorization", `Bearer ${token}`)
+                .send({ stock: -5 });
+
+            expect(res.status).to.equal(400);
+        });
     });
 
     describe("DELETE /products/:id", () => {
@@ -159,6 +196,34 @@ describe("Integração - Produtos", () => {
                 .set("Authorization", `Bearer ${token}`);
 
             expect(res.status).to.equal(404);
+        });
+
+        it("deve retornar 401 se não autenticado", async () => {
+            const res = await request(app).delete("/products/1");
+            expect(res.status).to.equal(401);
+        });
+
+        it("deve impedir a deleção de produto associado a um carrinho (Integridade Referencial)", async () => {
+            const token = await createUserAndGetToken();
+            const user = await User.findOne({ where: { email: "owner@test.com" } });
+
+            const product = await Product.create({
+                name: "Produto Bloqueado",
+                price: 10,
+                description: "Desc",
+                stock: 5,
+                userId: user!.id
+            });
+
+            await Cart.create({ userId: user!.id });
+            await CartItem.create({ cartId: user!.id, productId: product.id, quantity: 1 });
+
+            const res = await request(app)
+                .delete(`/products/${product.id}`)
+                .set("Authorization", `Bearer ${token}`);
+
+            expect(res.status).to.equal(409);
+            expect(res.body.message).to.include("dependências");
         });
     });
 });
