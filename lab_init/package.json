@@ -7,6 +7,7 @@
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "mocha -r ts-node/register -r tests/setup.ts tests/unit/**/*.test.ts",
     "test:integration": "mocha -r ts-node/register -r tests/setup.ts tests/integration/**/*.test.ts",
+    "test:e2e": "mocha -r ts-node/register -r tests/setup.ts tests/e2e/**/*.test.ts",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js"
