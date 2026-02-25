@@ -52,6 +52,30 @@ describe("Integração - Autenticação", () => {
 
             expect(res.status).to.equal(409);
         });
+
+        it("deve retornar 400 se faltarem campos obrigatórios", async () => {
+            const res = await request(app)
+                .post("/auth/register")
+                .send({
+                    name: "Incompleto",
+                    email: "incomplete@test.com"
+                    // Senha faltando
+                });
+
+            expect(res.status).to.equal(400);
+        });
+
+        it("deve retornar 400 para um email inválido", async () => {
+            const res = await request(app)
+                .post("/auth/register")
+                .send({
+                    name: "Email Invalido",
+                    email: "email-invalido",
+                    password: "password123"
+                });
+
+            expect(res.status).to.equal(400);
+        });
     });
 
     describe("POST /login", () => {
@@ -97,14 +121,15 @@ describe("Integração - Autenticação", () => {
             expect(res.body.message).to.equal("Email ou senha inválidos");
         });
 
-        it("deve lidar com campos ausentes no corpo da requisição", async () => {
+        it("deve retornar 400 se a senha estiver ausente no corpo da requisição", async () => {
             const res = await request(app)
                 .post("/auth/login")
                 .send({
                     email: "integration@test.com"
+                    // Senha faltando
                 });
 
-            expect(res.status).to.be.oneOf([400, 500]);
+            expect(res.status).to.equal(400);
         });
     });
 
@@ -148,6 +173,11 @@ describe("Integração - Autenticação", () => {
                 .set("Authorization", `Bearer ${token}`);
 
             expect(protectedRes.status).to.equal(401);
+        });
+
+        it("deve retornar 401 ao tentar fazer logout sem um token", async () => {
+            const res = await request(app).post("/auth/logout");
+            expect(res.status).to.equal(401);
         });
     });
 
