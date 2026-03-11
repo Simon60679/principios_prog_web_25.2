@@ -150,6 +150,58 @@ class ProductController {
     /**
      * @swagger
      * /products/{id}:
+     *   get:
+     *     summary: Retorna um produto pelo ID
+     *     tags: [Produtos]
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do produto
+     *     responses:
+     *       200:
+     *         description: Produto encontrado com sucesso
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/Product'
+     *       400:
+     *         description: ID inválido
+     *       404:
+     *         description: Produto não encontrado
+     *       500:
+     *         description: Erro interno do servidor
+     */
+    async getProductById(req: Request, res: Response) {
+        try {
+            const productId = parseInt(req.params.id, 10);
+
+            // Validação simples do ID
+            if (isNaN(productId)) {
+                return res.status(400).json({ message: "ID de produto inválido." });
+            }
+
+            const product = await productService.findProductById(productId);
+
+            if (!product) {
+                return res.status(404).json({ message: "Produto não encontrado." });
+            }
+
+            return res.status(200).json(product);
+        } catch (error: any) {
+            console.error("Erro ao obter produto por ID:", error);
+            return res.status(500).json({ 
+                message: "Erro interno ao obter o produto", 
+                error: error.message 
+            });
+        }
+    }
+
+    /**
+     * @swagger
+     * /products/{id}:
      *   delete:
      *     summary: Deleta um produto
      *     tags: [Produtos]
@@ -193,6 +245,49 @@ class ProductController {
                 return res.status(409).json({ message: "Não é possível deletar este produto devido a dependências (carrinhos ativos)." });
             }
             return res.status(500).json({ message: "Erro interno ao deletar produto", error: error.message });
+        }
+    }
+
+    /**
+     * @swagger
+     * /products/search:
+     *   get:
+     *     summary: Pesquisa produtos com filtros e prioridade
+     *     tags: [Produtos]
+     *     parameters:
+     *       - in: query
+     *         name: q
+     *         schema:
+     *           type: string
+     *         required: true
+     *         description: Termo de pesquisa
+     *     responses:
+     *       200:
+     *         description: Resultados da pesquisa
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *               $ref: '#/components/schemas/Product'
+     *       400:
+     *         description: O termo de busca é inválido
+     *       500:
+     *         description: Erro interno do servidor
+     */
+    async searchProducts(req: Request, res: Response) {
+        try {
+            const query = req.query.q as string;
+
+            if (!query || query.trim().length < 2) {
+                return res.status(400).json({ message: "O termo de busca deve ter pelo menos 2 caracteres." });
+            }
+
+            const products = await productService.searchProducts(query);
+            return res.json(products);
+        } catch (error: any) {
+            console.error("Erro na busca de produtos:", error);
+            return res.status(500).json({ message: "Erro ao processar busca", error: error.message });
         }
     }
 }

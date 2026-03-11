@@ -1,3 +1,5 @@
+import { Op } from "sequelize";
+import Product from "../models/Product";
 import productRepository from "../repository/ProductRepository";
 
 class ProductService {
@@ -49,6 +51,52 @@ class ProductService {
      */
     async findProductById(productId: number) {
         return await productRepository.findProductById(productId);
+    }
+
+    async searchProducts(searchTerm: string) {
+        const term = searchTerm.toLowerCase().trim();
+        const words = term.split(/\s+/); // Divide a entrada em palavras
+
+        // 1. Busca no DB por qualquer produto que contenha as palavras (filtro inicial)
+        const products = await Product.findAll({
+            where: {
+                [Op.or]: [
+                    { name: { [Op.iLike]: `%${term}%` } },
+                    ...words.map(word => ({
+                        name: { [Op.iLike]: `%${word}%` }
+                    }))
+                ]
+            }
+        });
+
+        // 2. Lógica de Scoring para Prioridade
+        return products.map(product => {
+            const productName = product.name.toLowerCase();
+            let score = 0;
+
+            // Prioridade 1: Igualdade exata
+            if (productName === term) {
+                score = 100;
+            } 
+            // Prioridade 2: Se aproxima da entrada completa (começa com...)
+            else if (productName.startsWith(term)) {
+                score = 80;
+            }
+            // Prioridade 3: Contém a frase completa
+            else if (productName.includes(term)) {
+                score = 60;
+            }
+            // Prioridade 4: Contém palavras da entrada
+            else {
+                const matchedWords = words.filter(word => productName.includes(word));
+                score = matchedWords.length * 10;
+            }
+
+            return { product, score };
+        })
+        .filter(item => item.score > 0) // Remove os que não pontuaram
+        .sort((a, b) => b.score - a.score) // Ordena pela maior pontuação
+        .map(item => item.product); // Retorna apenas o objeto do produto
     }
 }
 

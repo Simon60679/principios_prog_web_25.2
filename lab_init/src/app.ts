@@ -74,6 +74,8 @@ app.patch("/users/:id", authenticate, userController.updateUser);
 app.delete("/users/:id", authenticate, userController.deleteUser);
 
 app.post("/products", authenticate, productController.createProduct);
+app.get('/products/search', productController.searchProducts);
+app.get('/products/:id', productController.getProductById);
 app.get("/products", productController.getAllProducts);
 app.patch("/products/:id/stock", authenticate, productController.updateStock);
 app.delete("/products/:id", authenticate, productController.deleteProduct);
