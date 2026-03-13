@@ -59,6 +59,76 @@ class ProductController {
 
     /**
      * @swagger
+     * /products/{id}:
+     *   put:
+     *     summary: Atualiza os dados de um produto existente
+     *     tags: [Produtos]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do produto
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               name:
+     *                 type: string
+     *               price:
+     *                 type: number
+     *               description:
+     *                 type: string
+     *     responses:
+     *       200:
+     *         description: Produto atualizado com sucesso
+     *       400:
+     *         description: Dados inválidos
+     *       403:
+     *         description: Permissão negada
+     *       404:
+     *         description: Produto não encontrado
+     */
+    async updateProduct(req: Request, res: Response) {
+        try {
+            const productId = parseInt(req.params.id, 10);
+            const { name, price, description } = req.body;
+            // Pegamos o ID do usuário logado pelo token
+            const userId = (req as any).user?.id; 
+
+            if (isNaN(productId)) {
+                return res.status(400).json({ message: "ID de produto inválido." });
+            }
+
+            // Enviamos o userId para o service garantir que só o dono pode editar
+            const updatedProduct = await productService.updateProduct(productId, { name, price, description }, userId);
+
+            if (!updatedProduct) {
+                return res.status(404).json({ message: "Produto não encontrado." });
+            }
+
+            return res.status(200).json({ 
+                message: "Produto atualizado com sucesso.", 
+                product: updatedProduct 
+            });
+
+        } catch (error: any) {
+            console.error("Erro ao atualizar produto:", error);
+            if (error.message.includes("Permissão negada")) {
+                return res.status(403).json({ message: error.message });
+            }
+            return res.status(500).json({ message: "Erro interno ao atualizar produto", error: error.message });
+        }
+    }
+
+    /**
+     * @swagger
      * /products:
      *   get:
      *     summary: Retorna a lista de todos os produtos

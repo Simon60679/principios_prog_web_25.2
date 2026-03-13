@@ -219,6 +219,81 @@ class CartController {
             return res.status(500).json({ message: "Erro interno ao diminuir a quantidade do item", error: error.message });
         }
     }
+
+    /**
+     * @swagger
+     * /cart/{userId}/item/{productId}/increase:
+     *   patch:
+     *     summary: Aumenta a quantidade de um item no carrinho
+     *     tags: [Carrinho]
+     *     security:
+     *       - bearerAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: userId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do usuário
+     *       - in: path
+     *         name: productId
+     *         schema:
+     *           type: integer
+     *         required: true
+     *         description: ID do produto
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             required:
+     *               - quantity
+     *       properties:
+     *         quantity:
+     *           type: integer
+     *           description: Quantidade a ser incrementada
+     *     responses:
+     *       200:
+     *         description: Quantidade atualizada com sucesso
+     *       400:
+     *         description: Dados inválidos ou limite de estoque atingido
+     *       404:
+     *         description: Item não encontrado
+     */
+    async increaseItem(req: Request, res: Response) {
+        try {
+            const userId = parseInt(req.params.userId, 10);
+            const productId = parseInt(req.params.productId, 10);
+            const { quantity: quantityToIncrease } = req.body;
+
+            if (isNaN(userId) || isNaN(productId) || typeof quantityToIncrease !== 'number' || quantityToIncrease <= 0) {
+                return res.status(400).json({ message: "Dados inválidos." });
+            }
+
+            if (userId !== (req as any).user.id) {
+                return res.status(403).json({ message: "Acesso negado. Você não pode alterar o carrinho de outro usuário." });
+            }
+
+            const result = await cartService.addItemToCart({ 
+                userId, 
+                productId, 
+                quantity: quantityToIncrease 
+            });
+
+            return res.status(200).json({ 
+                message: `Quantidade do produto ${productId} aumentada.`, 
+                item: result 
+            });
+
+        } catch (error: any) {
+            if (error.message.includes("Estoque máximo disponível")) {
+                return res.status(400).json({ message: error.message });
+            }
+            console.error("Erro ao aumentar quantidade:", error);
+            return res.status(500).json({ message: "Erro interno ao aumentar a quantidade do item", error: error.message });
+        }
+    }
 }
 
 export default new CartController();

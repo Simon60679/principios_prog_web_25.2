@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 
-// Tipagem baseada no seu modelo de Produto
 interface Product {
   id: number;
   name: string;
@@ -17,11 +16,9 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // Contexto de Autenticação e Navegação
   const { token, user, isAuthenticated } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  // Carrega os produtos ao montar a página
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -37,13 +34,9 @@ export default function HomePage() {
       const data = await response.json();
       setProducts(data);
     } catch (error) {
-      console.error("Erro na requisição, a carregar dados de fallback:", error);
-      // Dados de exemplo caso a API não esteja a correr no momento
-      setProducts([
-        { id: 1, name: "Teorias da Administração - Reinaldo O. da Silva", description: "Livro académico, edição revisada.", price: 120.00, stock: 5 },
-        { id: 2, name: "Farol Original VW Gol G6", description: "Peça automotiva de reposição em perfeito estado.", price: 350.00, stock: 2 },
-        { id: 3, name: "Kit Flor de Sal e Especiarias", description: "Ideal para finalizar pratos e carnes.", price: 45.90, stock: 15 }
-      ]);
+      console.error("Erro na requisição de produtos:", error);
+      // Aqui nós removemos os dados falsos. Se der erro de conexão, a lista fica vazia.
+      setProducts([]); 
     } finally {
       setLoading(false);
     }
@@ -55,7 +48,6 @@ export default function HomePage() {
   };
 
   const handleAddToCart = async (productId: number) => {
-    // Bloqueia a ação se o utilizador não estiver logado
     if (!isAuthenticated || !token || !user) {
       alert("Precisa de entrar na sua conta para adicionar itens ao carrinho.");
       navigate('/login');
@@ -63,7 +55,6 @@ export default function HomePage() {
     }
 
     try {
-      // Dispara a requisição com o token Bearer
       const response = await fetch('/cart/add', {
         method: 'POST',
         headers: {
@@ -77,23 +68,27 @@ export default function HomePage() {
         }),
       });
 
-      if (!response.ok) throw new Error('Falha ao adicionar ao carrinho');
+      // O Pulo do Gato: Captura a mensagem de erro real do seu backend
+      if (!response.ok) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(errData?.message || 'Falha ao adicionar ao carrinho');
+      }
       
       alert('Produto adicionado ao carrinho com sucesso!');
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao adicionar ao carrinho:", error);
-      alert('Não foi possível adicionar o produto neste momento.');
+      // Agora o alert vai mostrar se o problema foi estoque, ID inválido, etc.
+      alert(error.message || 'Não foi possível adicionar o produto neste momento.');
     }
   };
 
   return (
     <div className="w-full">
       
-      {/* Secção de Busca (Hero Banner) */}
       <section className="bg-white shadow-sm border-b py-10 md:py-16">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-6 tracking-tight">
-            O que está a procurar hoje?
+            O que estamos procurando hoje?
           </h1>
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
             <input
@@ -113,7 +108,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Conteúdo Principal (Grelha de Produtos) */}
       <main className="p-4 sm:p-8 max-w-7xl mx-auto min-h-[50vh]">
         <div className="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
           <h2 className="text-xl font-bold text-gray-800">
@@ -133,7 +127,6 @@ export default function HomePage() {
             {products.map((product) => (
               <div key={product.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex flex-col h-full">
                 
-                {/* Imagem e Título Clicáveis (Redirecionam para Detalhes) */}
                 <Link to={`/produto/${product.id}`} className="group block cursor-pointer">
                   <div className="h-48 bg-gray-50 rounded-lg mb-4 flex items-center justify-center text-gray-400 overflow-hidden border border-gray-100">
                     {product.imageUrl ? (
@@ -150,7 +143,6 @@ export default function HomePage() {
                   </h3>
                 </Link>
 
-                {/* Descrição e Preço */}
                 <p className="text-sm text-gray-500 mb-4 line-clamp-2 flex-grow">
                   {product.description}
                 </p>
@@ -164,7 +156,6 @@ export default function HomePage() {
                   </span>
                 </div>
                 
-                {/* Botão de Adicionar ao Carrinho */}
                 <button 
                   onClick={() => handleAddToCart(product.id)}
                   disabled={product.stock === 0}
@@ -182,7 +173,6 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Estado Vazio (Nenhum produto encontrado) */}
         {!loading && products.length === 0 && (
           <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300 mt-4">
             <p className="text-gray-500 text-lg">Nenhum produto encontrado.</p>

@@ -13,6 +13,39 @@ class ProductService {
     }
 
     /**
+     * Atualiza os dados básicos de um produto existente (nome, preço, descrição).
+     * Inclui uma regra de segurança para garantir que apenas o dono do produto possa alterá-lo.
+     * @param productId - O ID do produto a ser atualizado.
+     * @param updateData - Objeto contendo os campos opcionais a serem atualizados.
+     * @param userId - O ID do usuário que está solicitando a alteração.
+     * @returns O produto atualizado ou null se o produto não for encontrado.
+     * @throws {Error} Se o usuário solicitante não for o dono do produto.
+     */
+    async updateProduct(productId: number, updateData: { name?: string; price?: number; description?: string }, userId: number) {
+        // 1. Busca o produto no banco
+        const product = await Product.findByPk(productId);
+        
+        if (!product) {
+            return null;
+        }
+
+        // 2. REGRA DE SEGURANÇA: Verifica se quem está editando é o dono do produto
+        if (product.userId !== userId) {
+            throw new Error("Permissão negada. Você só pode editar os seus próprios produtos.");
+        }
+
+        // 3. Atualiza apenas os campos que foram enviados
+        if (updateData.name !== undefined) product.name = updateData.name;
+        if (updateData.price !== undefined) product.price = updateData.price;
+        if (updateData.description !== undefined) product.description = updateData.description;
+
+        // 4. Salva no banco de dados
+        await product.save();
+        
+        return product;
+    }
+
+    /**
      * Recupera todos os produtos cadastrados.
      * @returns Uma lista de produtos.
      */
@@ -53,6 +86,11 @@ class ProductService {
         return await productRepository.findProductById(productId);
     }
 
+    /**
+     * Busca produtos baseando-se em um termo de pesquisa, aplicando pontuação de relevância.
+     * @param searchTerm - O termo a ser pesquisado.
+     * @returns Uma lista de produtos ordenados por relevância.
+     */
     async searchProducts(searchTerm: string) {
         const term = searchTerm.toLowerCase().trim();
         const words = term.split(/\s+/); // Divide a entrada em palavras

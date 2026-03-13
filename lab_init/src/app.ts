@@ -73,17 +73,21 @@ app.get("/users", authenticate, userController.getAllUsers);
 app.patch("/users/:id", authenticate, userController.updateUser);
 app.delete("/users/:id", authenticate, userController.deleteUser);
 
+// --- ROTAS DO PRODUTO ---
 app.post("/products", authenticate, productController.createProduct);
 app.get('/products/search', productController.searchProducts);
 app.get('/products/:id', productController.getProductById);
 app.get("/products", productController.getAllProducts);
 app.patch("/products/:id/stock", authenticate, productController.updateStock);
 app.delete("/products/:id", authenticate, productController.deleteProduct);
+app.put("/products/:id", authenticate, productController.updateProduct);
 
+// --- ROTAS DO CARRINHO ---
 app.get("/users/:userId/cart", authenticate, cartController.findCart);
 app.post("/cart/add", authenticate, cartController.addItem);
 app.delete("/cart/:userId/item/:productId", authenticate, cartController.removeItem);
 app.patch("/cart/:userId/item/:productId/decrease", authenticate, cartController.decreaseItem);
+app.patch("/cart/:userId/item/:productId/increase", authenticate, cartController.increaseItem);
 
 // --- ROTAS DE TRANSAÇÃO (COMPRA/VENDA) ---
 app.post("/checkout/:userId", checkoutLimiter, authenticate, transactionController.checkout);
