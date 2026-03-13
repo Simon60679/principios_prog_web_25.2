@@ -21,25 +21,28 @@ class ProductService {
      * @returns O produto atualizado ou null se o produto não for encontrado.
      * @throws {Error} Se o usuário solicitante não for o dono do produto.
      */
-    async updateProduct(productId: number, updateData: { name?: string; price?: number; description?: string }, userId: number) {
-        // 1. Busca o produto no banco
+    async updateProduct(productId: number, updateData: { name?: string; price?: number; description?: string; images?: string[] }, userId: number) {
         const product = await Product.findByPk(productId);
         
         if (!product) {
             return null;
         }
 
-        // 2. REGRA DE SEGURANÇA: Verifica se quem está editando é o dono do produto
         if (product.userId !== userId) {
             throw new Error("Permissão negada. Você só pode editar os seus próprios produtos.");
         }
 
-        // 3. Atualiza apenas os campos que foram enviados
         if (updateData.name !== undefined) product.name = updateData.name;
-        if (updateData.price !== undefined) product.price = updateData.price;
+        // Garantimos que o preço não é NaN caso venha incorreto
+        if (updateData.price !== undefined && !isNaN(updateData.price)) product.price = updateData.price;
         if (updateData.description !== undefined) product.description = updateData.description;
+        
+        // TRUQUE: Obriga o Sequelize a gravar o campo JSON, essencial para produtos antigos!
+        if (updateData.images !== undefined && updateData.images.length > 0) {
+            product.set('images', updateData.images);
+            product.changed('images', true);
+        }
 
-        // 4. Salva no banco de dados
         await product.save();
         
         return product;

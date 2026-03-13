@@ -13,7 +13,7 @@ class ProductController {
      *     requestBody:
      *       required: true
      *       content:
-     *         application/json:
+     *         multipart/form-data:
      *           schema:
      *             type: object
      *             required:
@@ -23,12 +23,22 @@ class ProductController {
      *             properties:
      *               name:
      *                 type: string
+     *                 description: Nome do produto
      *               price:
      *                 type: number
+     *                 description: Preço do produto
      *               description:
      *                 type: string
+     *                 description: Descrição do produto
      *               stock:
      *                 type: number
+     *                 description: Quantidade em estoque
+     *               images:
+     *                 type: array
+     *               items:
+     *                 type: string
+     *                 format: binary
+     *                 description: Selecione até 4 imagens para o produto
      *             $ref: '#/components/schemas/Product'
      *     responses:
      *       201:
@@ -45,11 +55,16 @@ class ProductController {
             const { name, price, description, stock } = req.body;
             const userId = (req as any).user?.id;
 
+            // O multer joga os arquivos dentro de req.files!
+            const files = req.files as Express.Multer.File[];
+            // Transforma os arquivos físicos em links (ex: "/uploads/16281812-foto.jpg")
+            const images = files ? files.map(file => `/uploads/${file.filename}`) : [];
+
             if (!name || !price || !description) {
                 return res.status(400).json({ message: "Nome, preço e descrição são obrigatórios." });
             }
 
-            const product = await productService.createProduct({ name, price, description, stock, userId });
+            const product = await productService.createProduct({ name, price, description, stock, userId, images });
             return res.status(201).json(product);
         } catch (error: any) {
             console.error("Erro ao criar produto:", error);
@@ -75,7 +90,7 @@ class ProductController {
      *     requestBody:
      *       required: true
      *       content:
-     *         application/json:
+     *         multipart/form-data:
      *           schema:
      *             type: object
      *             properties:
@@ -85,6 +100,12 @@ class ProductController {
      *                 type: number
      *               description:
      *                 type: string
+     *               images:
+     *                 type: array
+     *               items:
+     *                 type: string
+     *                 format: binary
+     *                 description: Até 4 imagens do produto
      *     responses:
      *       200:
      *         description: Produto atualizado com sucesso
@@ -99,15 +120,29 @@ class ProductController {
         try {
             const productId = parseInt(req.params.id, 10);
             const { name, price, description } = req.body;
-            // Pegamos o ID do usuário logado pelo token
             const userId = (req as any).user?.id; 
 
             if (isNaN(productId)) {
                 return res.status(400).json({ message: "ID de produto inválido." });
             }
 
-            // Enviamos o userId para o service garantir que só o dono pode editar
-            const updatedProduct = await productService.updateProduct(productId, { name, price, description }, userId);
+            const parsedPrice = price !== undefined ? parseFloat(price) : undefined;
+
+            // Captura as novas imagens, caso o utilizador tenha enviado alguma
+            const files = req.files as Express.Multer.File[];
+            let images: string[] | undefined = undefined;
+            
+            // Se existirem ficheiros, criamos o array de links
+            if (files && files.length > 0) {
+                images = files.map(file => `/uploads/${file.filename}`);
+            }
+
+            // Enviamos as informações (incluindo as novas imagens, se existirem) para o Service
+            const updatedProduct = await productService.updateProduct(
+                productId, 
+                { name, price: parsedPrice, description, images }, 
+                userId
+            );
 
             if (!updatedProduct) {
                 return res.status(404).json({ message: "Produto não encontrado." });

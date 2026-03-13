@@ -10,6 +10,7 @@ interface Product {
   description: string;
   price: number;
   stock: number;
+  images?: string[]; // Adicionamos as imagens na interface
 }
 
 interface SaleItem {
@@ -23,14 +24,13 @@ interface SaleItem {
 interface Sale {
   id: number;
   totalAmount: number;
-  saleDate: string; // Já atualizado para refletir o seu banco de dados
+  saleDate: string;
   items?: SaleItem[];
 }
 
 export default function SellerDashboardPage() {
   const { user, token } = useContext(AuthContext);
   
-  // Estados de Produtos e Vendas
   const [myProducts, setMyProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -41,9 +41,9 @@ export default function SellerDashboardPage() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('1');
+  const [imageFiles, setImageFiles] = useState<File[]>([]); // Novo estado para as fotos
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // NOVO: Estado para controlar se estamos criando ou editando
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -53,7 +53,6 @@ export default function SellerDashboardPage() {
     }
   }, [user, token]);
 
-  // --- Buscas na API ---
   const fetchMyProducts = async () => {
     try {
       const response = await fetch('/products');
@@ -86,27 +85,37 @@ export default function SellerDashboardPage() {
     }
   };
 
-  // --- Ações ---
+  // Lida com a seleção de arquivos e limita a 4
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      if (files.length > 4) {
+        alert("Você pode selecionar no máximo 4 imagens.");
+        e.target.value = ''; // Reseta o input
+        setImageFiles([]);
+        return;
+      }
+      setImageFiles(files);
+    }
+  };
 
-  // Função para preencher o formulário quando clicar em "Editar"
   const handleEditClick = (product: Product) => {
     setEditingProductId(product.id);
     setName(product.name);
     setDescription(product.description);
     setPrice(product.price.toString());
     setStock(product.stock.toString());
-    
-    // Rola a página para o topo (útil no celular)
+    setImageFiles([]); // Limpa arquivos selecionados para não sobescrever sem querer
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Função para cancelar a edição e limpar o formulário
   const cancelEdit = () => {
     setEditingProductId(null);
     setName('');
     setDescription('');
     setPrice('');
     setStock('1');
+    setImageFiles([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -115,19 +124,39 @@ export default function SellerDashboardPage() {
     setIsSubmitting(true);
 
     try {
+      // 1. Prepara os dados no formato FormData (que suporta arquivos)
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('description', description);
+      formData.append('price', price.toString());
+      formData.append('stock', stock.toString());
+      
+      // Adiciona o userId apenas se for criação
+      if (!editingProductId) {
+        formData.append('userId', user.id.toString());
+      }
+
+      // Anexa os arquivos um a um com o mesmo nome ('images') que o multer espera no backend
+      imageFiles.forEach(file => {
+        formData.append('images', file);
+      });
+
       if (editingProductId) {
         // --- MODO EDIÇÃO ---
-        
-        // 1. Atualiza os dados básicos (Nome, Descrição, Preço)
-        const responseData = await fetch(`/products/${editingProductId}`, {
+        const response = await fetch(`/products/${editingProductId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ name, description, price: parseFloat(price) })
+          headers: { 
+            'Authorization': `Bearer ${token}` 
+          },
+          body: formData
         });
 
-        if (!responseData.ok) throw new Error('Falha ao atualizar os dados do produto.');
-
-        // 2. Atualiza o estoque (se tiver sido alterado)
+        if (!response.ok) {
+            const errData = await response.json().catch(() => null);
+            throw new Error(errData?.message || 'Falha ao atualizar os dados do produto.');
+        }
+        
+        // Atualiza o estoque separadamente se tiver mudado
         const currentProduct = myProducts.find(p => p.id === editingProductId);
         if (currentProduct && currentProduct.stock !== parseInt(stock, 10)) {
           await fetch(`/products/${editingProductId}/stock`, {
@@ -138,23 +167,25 @@ export default function SellerDashboardPage() {
         }
 
         alert('Produto atualizado com sucesso!');
-        cancelEdit(); // Limpa e volta para modo "Novo Produto"
+        cancelEdit();
 
       } else {
-        // --- MODO CRIAÇÃO (Já existia) ---
+        // --- MODO CRIAÇÃO ---
         const response = await fetch('/products', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ userId: user.id, name, description, price: parseFloat(price), stock: parseInt(stock, 10) })
+          headers: { 
+            'Authorization': `Bearer ${token}` 
+          },
+          body: formData
         });
 
         if (!response.ok) throw new Error('Falha ao criar o produto.');
 
         alert('Produto cadastrado com sucesso!');
-        cancelEdit(); // Aproveitamos a mesma função para limpar os campos
+        cancelEdit();
       }
       
-      fetchMyProducts(); // Atualiza a lista
+      fetchMyProducts(); 
       
     } catch (error: any) {
       console.error(error);
@@ -198,12 +229,12 @@ export default function SellerDashboardPage() {
       {/* LADO ESQUERDO: Formulário e Meus Produtos */}
       <div className="lg:col-span-1 flex flex-col gap-8">
         
-        {/* Formulário (Agora atende Criação e Edição) */}
+        {/* Formulário */}
         <div className={`p-6 rounded-xl shadow-sm border transition-colors ${editingProductId ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'}`}>
           <h2 className={`text-xl font-bold mb-4 ${editingProductId ? 'text-blue-800' : 'text-gray-800'}`}>
             {editingProductId ? '✏️ Editando Produto' : 'Novo Produto'}
           </h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" encType="multipart/form-data">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
               <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
@@ -222,13 +253,25 @@ export default function SellerDashboardPage() {
                 <input type="number" min="0" required value={stock} onChange={(e) => setStock(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
             </div>
+
+            {/* UPLOAD DE IMAGENS */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Imagens (Até 4 fotos)</label>
+              <input 
+                type="file" 
+                multiple 
+                accept="image/*" 
+                onChange={handleFileChange} 
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+              />
+              {editingProductId && <p className="text-xs text-gray-500 mt-1">Deixe em branco para manter as fotos atuais.</p>}
+            </div>
             
             <div className="flex gap-2 mt-2">
               <button type="submit" disabled={isSubmitting} className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors">
                 {isSubmitting ? 'Salvando...' : (editingProductId ? 'Salvar Alterações' : 'Cadastrar')}
               </button>
               
-              {/* Botão de cancelar só aparece se estiver no modo edição */}
               {editingProductId && (
                 <button type="button" onClick={cancelEdit} className="px-4 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-bold text-sm hover:bg-gray-300 transition-colors">
                   Cancelar
@@ -249,10 +292,26 @@ export default function SellerDashboardPage() {
             <ul className="divide-y divide-gray-100 max-h-80 overflow-y-auto pr-2">
               {myProducts.map(product => (
                 <li key={product.id} className="py-3 flex flex-col gap-2">
-                  <div className="overflow-hidden">
-                    <p className="font-bold text-sm text-gray-800 truncate" title={product.name}>{product.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Qtd: {product.stock} | R$ {parseFloat(product.price as any).toFixed(2)}</p>
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    
+                    {/* Miniatura da Imagem */}
+                    <div className="w-12 h-12 bg-gray-100 rounded object-cover flex-shrink-0 border border-gray-200 overflow-hidden flex items-center justify-center">
+                      {product.images && product.images.length > 0 ? (
+                        <img 
+                          src={`http://localhost:3000${product.images[0]}`} 
+                          alt={product.name} 
+                          className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs text-gray-400">Sem foto</span>
+                      )}
+                    </div>
+
+                    <div className="flex-1 truncate">
+                      <p className="font-bold text-sm text-gray-800 truncate" title={product.name}>{product.name}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">Qtd: {product.stock} | R$ {parseFloat(product.price as any).toFixed(2)}</p>
+                    </div>
                   </div>
+
                   <div className="flex gap-2 justify-end">
                     <button onClick={() => handleEditClick(product)} className="text-xs font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded transition-colors">
                       Editar
@@ -268,7 +327,7 @@ export default function SellerDashboardPage() {
         </div>
       </div>
 
-      {/* LADO DIREITO: Histórico de Vendas */}
+      {/* LADO DIREITO: Histórico de Vendas (Permanece igual) */}
       <div className="lg:col-span-2 flex flex-col gap-6">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-md p-6 text-white flex justify-between items-center">
           <div>

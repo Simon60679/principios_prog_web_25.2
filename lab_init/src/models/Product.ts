@@ -10,6 +10,7 @@ export interface ProductAttributes {
   price: number;
   stock: number;
   description: string;
+  images?: string[];
 }
 
 export interface ProductCreationAttributes
@@ -98,6 +99,11 @@ Product.init(
     description: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    images: {
+      type: DataTypes.JSON, 
+      allowNull: true,
+      defaultValue: []
     }
   },
   {

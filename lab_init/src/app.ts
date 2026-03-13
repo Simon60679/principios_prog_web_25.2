@@ -14,9 +14,13 @@ import userController from "./controllers/UserController";
 import productController from "./controllers/ProductController";
 import cartController from "./controllers/CartController";
 import transactionController from "./controllers/TransactionController";
+import path from "path";
+import upload from './middlewares/uploadMiddleware';
 
 const app = express();
 app.use(express.json());
+// Libera acesso público à pasta de uploads para o Frontend ler as fotos
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -74,13 +78,13 @@ app.patch("/users/:id", authenticate, userController.updateUser);
 app.delete("/users/:id", authenticate, userController.deleteUser);
 
 // --- ROTAS DO PRODUTO ---
-app.post("/products", authenticate, productController.createProduct);
+app.post("/products", authenticate, upload.array('images', 4), productController.createProduct);
 app.get('/products/search', productController.searchProducts);
 app.get('/products/:id', productController.getProductById);
 app.get("/products", productController.getAllProducts);
 app.patch("/products/:id/stock", authenticate, productController.updateStock);
 app.delete("/products/:id", authenticate, productController.deleteProduct);
-app.put("/products/:id", authenticate, productController.updateProduct);
+app.put("/products/:id", authenticate, upload.array('images', 4), productController.updateProduct);
 
 // --- ROTAS DO CARRINHO ---
 app.get("/users/:userId/cart", authenticate, cartController.findCart);
