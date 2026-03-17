@@ -4,13 +4,14 @@ import sequelize from "../config/database";
 export interface SaleAttributes {
   id: number;
   sellerId: number;
+  purchaseId: number;
   totalAmount: number;
   saleDate: Date;
+  status: string;
 }
 
 export interface SaleCreationAttributes
-  extends Optional<SaleAttributes, "id" | "saleDate" | "totalAmount"> { }
-
+  extends Optional<SaleAttributes, "id" | "saleDate" | "totalAmount" | "status" | "purchaseId"> { }
 /**
  * @swagger
  * components:
@@ -43,8 +44,10 @@ export class Sale
   implements SaleAttributes {
   public id!: number;
   public sellerId!: number;
+  public purchaseId!: number;
   public totalAmount!: number;
   public saleDate!: Date;
+  public status!: string;
 }
 
 Sale.init(
@@ -62,6 +65,11 @@ Sale.init(
         key: 'id',
       }
     },
+    purchaseId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: 'purchases', key: 'id' }
+    },
     totalAmount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
@@ -71,6 +79,11 @@ Sale.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+    },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'Aguardando pagamento',
     }
   },
   {

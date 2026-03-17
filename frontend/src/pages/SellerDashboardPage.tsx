@@ -25,6 +25,7 @@ interface Sale {
   id: number;
   totalAmount: number;
   saleDate: string;
+  status?: string;
   items?: SaleItem[];
 }
 
@@ -83,6 +84,53 @@ export default function SellerDashboardPage() {
     } finally {
       setLoadingSales(false);
     }
+  };
+
+  // Avança o status da venda de acordo com a máquina de estados
+  const handleAdvanceSaleStatus = async (saleId: number, currentStatus?: string) => {
+    const status = currentStatus || 'Aguardando pagamento';
+    let nextStatus = '';
+
+    if (status === 'Aguardando pagamento') nextStatus = 'Em processamento';
+    else if (status === 'Em processamento') nextStatus = 'Enviado';
+    else if (status === 'Enviado') nextStatus = 'Entregue';
+    else return; // Se for Entregue ou Concluído, o vendedor não faz mais nada
+
+    const confirm = window.confirm(`Deseja alterar o status desta venda para "${nextStatus}"?`);
+    if (!confirm) return;
+
+    try {
+      const response = await fetch(`/users/sales/${saleId}/status`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({ newStatus: nextStatus })
+      });
+
+      if (!response.ok) {
+        const rawError = await response.text();
+        console.error("ERRO BRUTO DO SERVIDOR:", rawError);
+        throw new Error(`Erro ${response.status}: O servidor respondeu com -> ${rawError.substring(0, 100)}...`);
+      }
+
+      fetchSales(); // Atualiza a tela
+    } catch (error: any) {
+      alert(error.message);
+    }
+  };
+
+  // Renderiza as etiquetas coloridas
+  const renderStatusBadge = (status?: string) => {
+    const currentStatus = status || 'Aguardando pagamento';
+    let colorClasses = 'bg-yellow-100 text-yellow-800'; 
+    if (currentStatus === 'Em processamento') colorClasses = 'bg-blue-100 text-blue-800';
+    else if (currentStatus === 'Enviado') colorClasses = 'bg-purple-100 text-purple-800';
+    else if (currentStatus === 'Entregue') colorClasses = 'bg-green-100 text-green-800';
+    else if (currentStatus === 'Concluído') colorClasses = 'bg-gray-200 text-gray-800 font-bold';
+
+    return <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${colorClasses}`}>{currentStatus}</span>;
   };
 
   // Lida com a seleção de arquivos e limita a 4
@@ -327,7 +375,7 @@ export default function SellerDashboardPage() {
         </div>
       </div>
 
-      {/* LADO DIREITO: Histórico de Vendas (Permanece igual) */}
+      {/* LADO DIREITO: Histórico de Vendas */}
       <div className="lg:col-span-2 flex flex-col gap-6">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-md p-6 text-white flex justify-between items-center">
           <div>
@@ -354,11 +402,19 @@ export default function SellerDashboardPage() {
             <div className="space-y-6">
               {sales.map((sale) => (
                 <div key={sale.id} className="border border-gray-100 rounded-lg overflow-hidden shadow-sm hover:shadow transition-shadow">
-                  <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-100">
-                    <span className="text-sm font-medium text-gray-500">Venda #{sale.id}</span>
-                    <span className="text-sm text-gray-600">{formatDate(sale.saleDate)}</span>
+                  
+                  {/* Cabeçalho da Venda */}
+                  <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-100 flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-500">Venda #{sale.id}</span>
+                      <span className="text-sm text-gray-600 hidden sm:inline">• {formatDate(sale.saleDate)}</span>
+                    </div>
+                    <div>
+                      {renderStatusBadge(sale.status)}
+                    </div>
                   </div>
                   
+                  {/* Itens */}
                   {sale.items && sale.items.length > 0 && (
                     <ul className="divide-y divide-gray-50 px-4">
                       {sale.items.map(item => (
@@ -377,9 +433,26 @@ export default function SellerDashboardPage() {
                     </ul>
                   )}
                   
-                  <div className="bg-gray-50 px-4 py-3 text-right border-t border-gray-100">
-                    <span className="text-sm text-gray-500 mr-2">Total desta venda:</span>
-                    <span className="text-lg font-black text-gray-800">R$ {parseFloat(sale.totalAmount as any).toFixed(2)}</span>
+                  {/* Rodapé: Total e Botão de Ação */}
+                  <div className="bg-gray-50 px-4 py-3 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="text-right sm:text-left w-full sm:w-auto">
+                      <span className="text-sm text-gray-500 mr-2">Total recebido:</span>
+                      <span className="text-lg font-black text-gray-800">R$ {parseFloat(sale.totalAmount as any).toFixed(2)}</span>
+                    </div>
+
+                    {/* Botão para avançar o status do pedido */}
+                    {['Aguardando pagamento', 'Em processamento', 'Enviado'].includes(sale.status || 'Aguardando pagamento') && (
+                      <button 
+                        onClick={() => handleAdvanceSaleStatus(sale.id, sale.status)}
+                        className="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
+                      >
+                        Avançar Status ➔
+                      </button>
+                    )}
+
+                    {sale.status === 'Entregue' && (
+                      <span className="text-sm font-medium text-gray-500 italic">Aguardando o cliente marcar como Concluído.</span>
+                    )}
                   </div>
                 </div>
               ))}

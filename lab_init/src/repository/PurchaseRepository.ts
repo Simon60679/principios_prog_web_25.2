@@ -101,6 +101,7 @@ export class PurchaseRepository {
 
                 const sale = await Sale.create({
                     sellerId: Number(sellerId),
+                    purchaseId: purchaseRecord.id,
                     totalAmount: saleData.totalAmount,
                     saleDate: new Date(),
                 }, { transaction: t });

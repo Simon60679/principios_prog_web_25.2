@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import Sale from "../models/Sale";
+import Purchase from "../models/Purchase";
 import purchaseService from "../services/PurchaseService";
 import saleRepository from "../repository/SaleRepository";
 
@@ -146,6 +148,113 @@ class TransactionController {
         } catch (error: any) {
             console.error("Erro ao obter histórico de vendas:", error);
             return res.status(500).json({ message: "Erro interno ao obter o histórico de vendas", error: error.message });
+        }
+    }
+
+    /**
+     * @swagger
+     * /sales/{saleId}/status:
+     *   patch:
+     *     summary: Atualiza o status de uma venda (Apenas Vendedor)
+     */
+    async updateSaleStatus(req: Request, res: Response) {
+        try {
+            const saleId = parseInt(req.params.saleId, 10);
+            const sellerId = (req as any).user.id;
+            const { newStatus } = req.body;
+
+            const sale = await Sale.findByPk(saleId);
+            if (!sale) return res.status(404).json({ message: "Venda não encontrada." });
+
+            if (sale.sellerId !== sellerId) {
+                return res.status(403).json({ message: "Você não tem permissão para alterar esta venda." });
+            }
+
+            const currentStatus = sale.status || 'Aguardando pagamento';
+            const validTransitions: Record<string, string> = {
+                'Aguardando pagamento': 'Em processamento',
+                'Em processamento': 'Enviado',
+                'Enviado': 'Entregue'
+            };
+
+            const expectedNextStatus = validTransitions[currentStatus];
+
+            if (newStatus !== expectedNextStatus) {
+                return res.status(400).json({ 
+                    message: `Transição inválida. O status atual é '${currentStatus}'. O próximo status deve ser '${expectedNextStatus || 'nenhum'}'.` 
+                });
+            }
+
+            sale.status = newStatus;
+            await sale.save(); // Salva a alteração da Venda primeiro
+
+            // SINCRONIZAÇÃO: Acha a compra pela Chave Estrangeira
+            try {
+                if (sale.purchaseId) {
+                    const purchase = await Purchase.findByPk(sale.purchaseId);
+                    if (purchase && (purchase.status === currentStatus || !purchase.status)) {
+                        purchase.status = newStatus;
+                        await purchase.save();
+                    }
+                }
+            } catch (syncError) {
+                console.error("Erro na sincronização da compra:", syncError);
+            }
+
+            return res.json({ message: `Status da venda atualizado para ${newStatus}`, sale });
+
+        } catch (error: any) {
+            console.error("Erro ao atualizar status da venda:", error);
+            return res.status(500).json({ message: "Erro interno", error: error.message });
+        }
+    }
+
+    /**
+     * @swagger
+     * /purchases/{purchaseId}/status:
+     *   patch:
+     *     summary: Atualiza o status de uma compra para Concluído (Apenas Comprador)
+     */
+    async updatePurchaseStatus(req: Request, res: Response) {
+        try {
+            const purchaseId = parseInt(req.params.purchaseId, 10);
+            const buyerId = (req as any).user.id;
+            const { newStatus } = req.body;
+
+            const purchase = await Purchase.findByPk(purchaseId);
+            if (!purchase) return res.status(404).json({ message: "Compra não encontrada." });
+
+            if (purchase.userId !== buyerId) {
+                return res.status(403).json({ message: "Você não tem permissão para alterar esta compra." });
+            }
+
+            const currentStatus = purchase.status || 'Aguardando pagamento';
+
+            if (currentStatus !== 'Entregue' || newStatus !== 'Concluído') {
+                return res.status(400).json({ 
+                    message: `Você só pode alterar para 'Concluído' quando estiver 'Entregue'. Status atual: '${currentStatus}'.` 
+                });
+            }
+
+            purchase.status = newStatus;
+            await purchase.save(); // Salva a alteração da Compra primeiro
+
+            // SINCRONIZAÇÃO: Atualiza todas as vendas atreladas a esta compra
+            try {
+                const sales = await Sale.findAll({ where: { purchaseId: purchase.id, status: currentStatus } });
+                for (const linkedSale of sales) {
+                    linkedSale.status = newStatus;
+                    await linkedSale.save();
+                }
+            } catch (syncError) {
+                console.error("Erro na sincronização das vendas:", syncError);
+            }
+
+            return res.json({ message: "Compra concluída com sucesso!", purchase });
+
+        } catch (error: any) {
+            console.error("Erro ao atualizar status da compra:", error);
+            return res.status(500).json({ message: "Erro interno", error: error.message });
         }
     }
 }

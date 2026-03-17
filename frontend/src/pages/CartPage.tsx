@@ -34,20 +34,22 @@ export default function CartPage() {
       
       const data = await response.json();
       
-      const rawItems = Array.isArray(data) ? data : (data.items || []);
+      const rawItems = data?.items || [];
 
       const normalizedItems = rawItems.map((item: any) => ({
-        id: item.id,
+        id: item.productId,
         productId: item.productId,
         quantity: item.quantity,
-        name: item.name || item.Product?.name || item.product?.name || 'Produto',
-        price: parseFloat(item.price || item.Product?.price || item.product?.price || 0)
+        name: item.product?.name || 'Produto Indisponível',
+        price: parseFloat(item.product?.price || 0)
       }));
 
       setCartItems(normalizedItems); 
 
     } catch (error) {
       console.error(error);
+      // Se der erro (ex: 404 Carrinho não encontrado), limpamos a tela
+      setCartItems([]);
     } finally {
       setLoading(false);
     }

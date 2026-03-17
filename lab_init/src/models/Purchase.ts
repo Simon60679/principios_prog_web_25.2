@@ -6,10 +6,11 @@ export interface PurchaseAttributes {
   userId: number;
   totalAmount: number;
   purchaseDate: Date;
+  status: string;
 }
 
 export interface PurchaseCreationAttributes
-  extends Optional<PurchaseAttributes, "id" | "purchaseDate" | "totalAmount"> { }
+  extends Optional<PurchaseAttributes, "id" | "purchaseDate" | "totalAmount" | "status"> { }
 
 /**
  * @swagger
@@ -45,6 +46,7 @@ export class Purchase
   public userId!: number;
   public totalAmount!: number;
   public purchaseDate!: Date;
+  public status!: string;
 }
 
 Purchase.init(
@@ -71,6 +73,11 @@ Purchase.init(
       type: DataTypes.DATE,
       allowNull: false,
       defaultValue: DataTypes.NOW,
+    },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'Aguardando pagamento',
     }
   },
   {

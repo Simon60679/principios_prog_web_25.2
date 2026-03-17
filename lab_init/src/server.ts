@@ -8,7 +8,7 @@ import sequelize from "./config/database";
 const PORT = process.env.PORT || 3000;
 
 sequelize
-    //.sync({ alter: true })
+    //.sync({ alter: true }) // Somente se modificar alguma tabela.
     .sync({ force: false })
     .then(() => {
         console.log("Banco de dados conectado e sincronizado!");

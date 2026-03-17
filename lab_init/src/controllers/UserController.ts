@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import userService from "../services/UserService";
 import { UserAttributes } from "../models/User";
+import User from "../models/User";
+import bcrypt from "bcrypt";
 
 class UserController {
     /**
@@ -145,31 +147,65 @@ class UserController {
      */
     async updateUser(req: Request, res: Response) {
         try {
-            const id = parseInt(req.params.id, 10);
-            const dataToUpdate: Partial<UserAttributes> = req.body;
+            const userId = parseInt(req.params.id, 10);
+            const userAuthenticatedId = (req as any).user.id;
+            const { name, email, currentPassword, newPassword } = req.body;
 
-            if (isNaN(id)) {
-                return res.status(400).json({ message: "ID de usuário inválido." });
+            // Validação Básica
+            if (isNaN(userId) || userId !== userAuthenticatedId) {
+                return res.status(403).json({ message: "Acesso negado. Você só pode alterar o seu próprio perfil." });
             }
 
-            if (Object.keys(dataToUpdate).length === 0) {
-                return res.status(400).json({ message: "Corpo da requisição vazio. Forneça dados para atualização." });
+            if (!currentPassword) {
+                return res.status(400).json({ message: "A senha atual é obrigatória para salvar as alterações." });
             }
 
-            const updatedUser = await userService.updateUser(id, dataToUpdate);
-
-            if (updatedUser === null) {
+            const user = await User.findByPk(userId);
+            if (!user) {
                 return res.status(404).json({ message: "Usuário não encontrado." });
             }
 
-            return res.status(200).json({
-                message: "Dados do usuário atualizados com sucesso.",
-                user: updatedUser
+            // Trava de Segurança
+            const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+            if (!isPasswordValid) {
+                return res.status(401).json({ message: "A senha atual está incorreta." });
+            }
+
+            // Validação de Email
+            if (email && email !== user.email) {
+                const emailExists = await User.findOne({ where: { email } });
+                if (emailExists) {
+                    return res.status(409).json({ message: "Este email já está sendo utilizado por outra conta." });
+                }
+            }
+
+            const updateData: any = {};
+            if (name) updateData.name = name;
+            if (email) updateData.email = email;
+
+            if (newPassword) {
+                // hash manualmente, desligar os hoos do banco
+                const salt = await bcrypt.genSalt(10);
+                updateData.password = await bcrypt.hash(newPassword, salt);
+            }
+
+            // Salva direto no banco desligando os hooks
+            await User.update(updateData, {
+                where: { id: userId },
+                hooks: false
+            });
+
+            // 6. Busca os dados para devolver ao Frontend
+            const updatedUser = await User.findByPk(userId);
+
+            return res.status(200).json({ 
+                message: "Perfil atualizado com sucesso!",
+                user: { id: updatedUser?.id, name: updatedUser?.name, email: updatedUser?.email }
             });
 
         } catch (error: any) {
             console.error("Erro ao atualizar usuário:", error);
-            return res.status(500).json({ message: "Erro interno ao atualizar usuário", error: error.message });
+            return res.status(500).json({ message: "Erro interno ao atualizar perfil", error: error.message });
         }
     }
 }

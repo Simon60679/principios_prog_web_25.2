@@ -14,6 +14,7 @@ import PurchasesPage from './pages/PurchasesPage';
 import SellerDashboardPage from './pages/SellerDashboardPage';
 import ProductDetailsPage from './pages/ProductDetailsPage';
 import RegisterPage from './pages/RegisterPage';
+import ProfilePage from './pages/ProfilePage';
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/compras" element={<ProtectedRoute><PurchasesPage /></ProtectedRoute>} />
             <Route path="/painel-vendedor" element={<ProtectedRoute><SellerDashboardPage /></ProtectedRoute>} />
             <Route path="/painel-vendedor" element={<SellerDashboardPage />} />
+            <Route path="/perfil" element={<ProfilePage />} />
           </Routes>
         </main>
 

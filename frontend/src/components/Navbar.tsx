@@ -47,6 +47,10 @@ export default function Navbar() {
                 <span className="text-sm text-gray-500 hidden md:block">
                   Olá, <strong className="text-gray-800">{user?.name?.split(' ')[0]}</strong>
                 </span>
+
+                <Link to="/perfil" className="text-sm font-bold text-gray-600 hover:text-blue-600 transition-colors">
+                  Meu Perfil
+                </Link>
                 
                 <Link to="/painel-vendedor" className="text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors">
                   Vender
@@ -72,7 +76,7 @@ export default function Navbar() {
                   Entrar
                 </Link>
                 <Link 
-                  to="/register" 
+                  to="/cadastro" 
                   className="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-blue-700 transition-colors shadow-sm"
                 >
                   Cadastrar
