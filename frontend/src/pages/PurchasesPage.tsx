@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 
@@ -11,7 +11,7 @@ interface PurchaseItem {
 }
 
 interface SubOrder {
-  id: number; // Este é o saleId
+  id: number;
   sellerId: number;
   status: string;
   totalAmount: number;
@@ -71,7 +71,6 @@ export default function PurchasesPage() {
     }
   };
 
-  // Função para o comprador finalizar o pedido
   const handleCompletePurchase = async (purchaseId: number, saleId: number) => {
     const confirm = window.confirm("Confirmar o recebimento e concluir este pacote definitivamente?");
     if (!confirm) return;
@@ -92,7 +91,7 @@ export default function PurchasesPage() {
       }
 
       alert("Recebimento do pacote confirmado com sucesso!");
-      fetchPurchases(); // Recarrega a lista
+      fetchPurchases();
     } catch (error: any) {
       alert(error.message);
     }
@@ -106,7 +105,6 @@ export default function PurchasesPage() {
     return new Date(dateString).toLocaleDateString('pt-BR', options);
   };
 
-  // Função para renderizar as etiquetas coloridas de status
   const renderStatusBadge = (status?: string) => {
     const currentStatus = status || 'Aguardando pagamento';
     let colorClasses = 'bg-yellow-100 text-yellow-800'; 
@@ -156,7 +154,6 @@ export default function PurchasesPage() {
           {purchases.map((purchase) => (
             <div key={purchase.id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
               
-              {/* CABEÇALHO DA COMPRA GERAL */}
               <div className="bg-gray-800 text-white px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-1">Pedido #{purchase.id}</p>
@@ -172,7 +169,6 @@ export default function PurchasesPage() {
                 </div>
               </div>
 
-              {/* LISTA DE PACOTES (SUB-PEDIDOS) */}
               <div className="p-6">
                 <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-4 border-b pb-2">Pacotes deste pedido</h3>
                 
@@ -187,7 +183,6 @@ export default function PurchasesPage() {
                             <span className="text-sm text-gray-500 font-medium">Vendedor #{subOrder.sellerId}</span>
                           </div>
                           
-                          {/* Exibe APENAS os itens que pertencem a este pacote específico */}
                           <ul className="mt-3 space-y-2 border-t border-gray-100 pt-3">
                             {subOrder.specificItems && subOrder.specificItems.length > 0 ? (
                                 subOrder.specificItems.map(item => (
@@ -211,7 +206,6 @@ export default function PurchasesPage() {
                              {renderStatusBadge(subOrder.status)}
                           </div>
                           
-                          {/* BOTÃO DE CONCLUIR INDIVIDUAL! */}
                           {subOrder.status === 'Entregue' && (
                             <button 
                               onClick={() => handleCompletePurchase(purchase.id, subOrder.id)}

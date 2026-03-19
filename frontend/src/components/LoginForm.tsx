@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { useNavigate } from 'react-router-dom'; // <-- Importe o useNavigate
+import { useNavigate } from 'react-router-dom'; 
 import { AuthContext } from '../contexts/AuthContext';
 
 export default function LoginForm() {
@@ -8,7 +8,7 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   
-  const navigate = useNavigate(); // <-- Inicialize o hook
+  const navigate = useNavigate(); 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +18,7 @@ export default function LoginForm() {
       await login(email, password);
       alert('Login realizado com sucesso!');
       
-      // Manda o usuário para a página inicial logo após o sucesso
+
       navigate('/'); 
       
     } catch (err: any) {

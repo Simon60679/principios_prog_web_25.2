@@ -2,7 +2,6 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 
-// Atualizamos a interface para receber o array de imagens do backend
 interface Product {
   id: number;
   name: string;
@@ -74,7 +73,6 @@ export default function HomePage() {
       }
       
       alert('Produto adicionado ao carrinho com sucesso!');
-      // Dispara o evento para a Navbar atualizar o contador imediatamente
       window.dispatchEvent(new Event('cartUpdated'));
     } catch (error: any) {
       console.error("Erro ao adicionar ao carrinho:", error);
@@ -128,9 +126,7 @@ export default function HomePage() {
               <div key={product.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex flex-col h-full">
                 
                 <Link to={`/produto/${product.id}`} className="group block cursor-pointer">
-                  {/* Container da Imagem */}
                   <div className="h-48 bg-gray-50 rounded-lg mb-4 flex items-center justify-center text-gray-400 overflow-hidden border border-gray-100">
-                    {/* Lógica Mágica: Se tem array de imagens e a primeira existe, mostra a foto! */}
                     {product.images && product.images.length > 0 ? (
                       <img 
                         src={`http://localhost:3000${product.images[0]}`}

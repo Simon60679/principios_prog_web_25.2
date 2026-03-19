@@ -7,7 +7,6 @@ export default function Navbar() {
   const navigate = useNavigate();
   const [cartCount, setCartCount] = useState(0);
 
-  // Busca a quantidade de itens no carrinho toda vez que a Navbar for renderizada
   useEffect(() => {
     const fetchCartCount = () => {
       if (isAuthenticated && user && token) {
@@ -36,8 +35,6 @@ export default function Navbar() {
   }, [isAuthenticated, user, token]);
 
   const handleLogout = async () => {
-    // Adicionamos o await para garantir que o token seja limpo e invalidado no backend
-    // ANTES de jogar o usuário de volta para a página inicial
     await logout();
     navigate('/');
   };
@@ -47,7 +44,6 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
 
-          {/* Logo / Nome do Site */}
           <Link to="/" className="flex-shrink-0 flex items-center gap-2 group">
             <div className="bg-blue-600 text-white p-2 rounded-lg group-hover:bg-blue-700 transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,16 +55,13 @@ export default function Navbar() {
             </span>
           </Link>
 
-          {/* Links de Navegação */}
           <div className="flex items-center gap-4 sm:gap-6">
 
-            {/* O Carrinho fica visível para todos */}
             <Link to="/carrinho" className="text-sm font-semibold flex items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors">
               <div className="relative">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
-                {/* Bolinha vermelha com o contador */}
                 {cartCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
                     {cartCount}
@@ -78,7 +71,6 @@ export default function Navbar() {
               <span className="hidden sm:inline">Carrinho</span>
             </Link>
 
-            {/* Renderização Condicional: Logado vs Visitante */}
             {isAuthenticated ? (
               <div className="flex items-center gap-3 sm:gap-4 border-l border-gray-200 pl-4">
                 <span className="text-sm text-gray-500 hidden md:block">

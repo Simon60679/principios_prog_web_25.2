@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
 
-// --- Interfaces ---
 interface Product {
   id: number;
   userId: number;
@@ -9,7 +8,7 @@ interface Product {
   description: string;
   price: number;
   stock: number;
-  images?: string[]; // Adicionamos as imagens na interface
+  images?: string[];
 }
 
 interface SaleItem {
@@ -36,12 +35,11 @@ export default function SellerDashboardPage() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loadingSales, setLoadingSales] = useState(true);
 
-  // Estados do Formulário
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('1');
-  const [imageFiles, setImageFiles] = useState<File[]>([]); // Novo estado para as fotos
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [editingProductId, setEditingProductId] = useState<number | null>(null);
@@ -85,7 +83,6 @@ export default function SellerDashboardPage() {
     }
   };
 
-  // Avança o status da venda de acordo com a máquina de estados
   const handleAdvanceSaleStatus = async (saleId: number, currentStatus?: string) => {
     const status = currentStatus || 'Aguardando pagamento';
     let nextStatus = '';
@@ -93,7 +90,7 @@ export default function SellerDashboardPage() {
     if (status === 'Aguardando pagamento') nextStatus = 'Em processamento';
     else if (status === 'Em processamento') nextStatus = 'Enviado';
     else if (status === 'Enviado') nextStatus = 'Entregue';
-    else return; // Se for Entregue ou Concluído, o vendedor não faz mais nada
+    else return;
 
     const confirm = window.confirm(`Deseja alterar o status desta venda para "${nextStatus}"?`);
     if (!confirm) return;
@@ -114,13 +111,12 @@ export default function SellerDashboardPage() {
         throw new Error(`Erro ${response.status}: O servidor respondeu com -> ${rawError.substring(0, 100)}...`);
       }
 
-      fetchSales(); // Atualiza a tela
+      fetchSales();
     } catch (error: any) {
       alert(error.message);
     }
   };
 
-  // Renderiza as etiquetas coloridas
   const renderStatusBadge = (status?: string) => {
     const currentStatus = status || 'Aguardando pagamento';
     let colorClasses = 'bg-yellow-100 text-yellow-800'; 
@@ -132,13 +128,12 @@ export default function SellerDashboardPage() {
     return <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${colorClasses}`}>{currentStatus}</span>;
   };
 
-  // Lida com a seleção de arquivos e limita a 4
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
       if (files.length > 4) {
         alert("Você pode selecionar no máximo 4 imagens.");
-        e.target.value = ''; // Reseta o input
+        e.target.value = '';
         setImageFiles([]);
         return;
       }
@@ -152,7 +147,7 @@ export default function SellerDashboardPage() {
     setDescription(product.description);
     setPrice(product.price.toString());
     setStock(product.stock.toString());
-    setImageFiles([]); // Limpa arquivos selecionados para não sobescrever sem querer
+    setImageFiles([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -171,25 +166,21 @@ export default function SellerDashboardPage() {
     setIsSubmitting(true);
 
     try {
-      // 1. Prepara os dados no formato FormData (que suporta arquivos)
       const formData = new FormData();
       formData.append('name', name);
       formData.append('description', description);
       formData.append('price', price.toString());
       formData.append('stock', stock.toString());
       
-      // Adiciona o userId apenas se for criação
       if (!editingProductId) {
         formData.append('userId', user.id.toString());
       }
 
-      // Anexa os arquivos um a um com o mesmo nome ('images') que o multer espera no backend
       imageFiles.forEach(file => {
         formData.append('images', file);
       });
 
       if (editingProductId) {
-        // --- MODO EDIÇÃO ---
         const response = await fetch(`/products/${editingProductId}`, {
           method: 'PUT',
           headers: { 
@@ -203,7 +194,6 @@ export default function SellerDashboardPage() {
             throw new Error(errData?.message || 'Falha ao atualizar os dados do produto.');
         }
         
-        // Atualiza o estoque separadamente se tiver mudado
         const currentProduct = myProducts.find(p => p.id === editingProductId);
         if (currentProduct && currentProduct.stock !== parseInt(stock, 10)) {
           await fetch(`/products/${editingProductId}/stock`, {
@@ -217,7 +207,6 @@ export default function SellerDashboardPage() {
         cancelEdit();
 
       } else {
-        // --- MODO CRIAÇÃO ---
         const response = await fetch('/products', {
           method: 'POST',
           headers: { 
@@ -273,10 +262,8 @@ export default function SellerDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
       
-      {/* LADO ESQUERDO: Formulário e Meus Produtos */}
       <div className="lg:col-span-1 flex flex-col gap-8">
         
-        {/* Formulário */}
         <div className={`p-6 rounded-xl shadow-sm border transition-colors ${editingProductId ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'}`}>
           <h2 className={`text-xl font-bold mb-4 ${editingProductId ? 'text-blue-800' : 'text-gray-800'}`}>
             {editingProductId ? '✏️ Editando Produto' : 'Novo Produto'}
@@ -301,7 +288,6 @@ export default function SellerDashboardPage() {
               </div>
             </div>
 
-            {/* UPLOAD DE IMAGENS */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Imagens (Até 4 fotos)</label>
               <input 
@@ -328,7 +314,6 @@ export default function SellerDashboardPage() {
           </form>
         </div>
 
-        {/* Lista de Produtos Ativos */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Meus Produtos</h2>
           {loadingProducts ? (
@@ -341,7 +326,6 @@ export default function SellerDashboardPage() {
                 <li key={product.id} className="py-3 flex flex-col gap-2">
                   <div className="flex items-center gap-3 overflow-hidden">
                     
-                    {/* Miniatura da Imagem */}
                     <div className="w-12 h-12 bg-gray-100 rounded object-cover flex-shrink-0 border border-gray-200 overflow-hidden flex items-center justify-center">
                       {product.images && product.images.length > 0 ? (
                         <img 
@@ -374,7 +358,6 @@ export default function SellerDashboardPage() {
         </div>
       </div>
 
-      {/* LADO DIREITO: Histórico de Vendas */}
       <div className="lg:col-span-2 flex flex-col gap-6">
         <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-md p-6 text-white flex justify-between items-center">
           <div>
@@ -402,7 +385,6 @@ export default function SellerDashboardPage() {
               {sales.map((sale) => (
                 <div key={sale.id} className="border border-gray-100 rounded-lg overflow-hidden shadow-sm hover:shadow transition-shadow">
                   
-                  {/* Cabeçalho da Venda */}
                   <div className="bg-gray-50 px-4 py-3 flex justify-between items-center border-b border-gray-100 flex-wrap gap-2">
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium text-gray-500">Venda #{sale.id}</span>
@@ -413,7 +395,6 @@ export default function SellerDashboardPage() {
                     </div>
                   </div>
                   
-                  {/* Itens */}
                   {sale.items && sale.items.length > 0 && (
                     <ul className="divide-y divide-gray-50 px-4">
                       {sale.items.map(item => (
@@ -432,14 +413,12 @@ export default function SellerDashboardPage() {
                     </ul>
                   )}
                   
-                  {/* Rodapé: Total e Botão de Ação */}
                   <div className="bg-gray-50 px-4 py-3 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div className="text-right sm:text-left w-full sm:w-auto">
                       <span className="text-sm text-gray-500 mr-2">Total recebido:</span>
                       <span className="text-lg font-black text-gray-800">R$ {parseFloat(sale.totalAmount as any).toFixed(2)}</span>
                     </div>
 
-                    {/* Botão para avançar o status do pedido */}
                     {['Aguardando pagamento', 'Em processamento', 'Enviado'].includes(sale.status || 'Aguardando pagamento') && (
                       <button 
                         onClick={() => handleAdvanceSaleStatus(sale.id, sale.status)}
