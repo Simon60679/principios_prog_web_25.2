@@ -3,6 +3,7 @@ import Sale from "../models/Sale";
 import Purchase from "../models/Purchase";
 import purchaseService from "../services/PurchaseService";
 import saleRepository from "../repository/SaleRepository";
+import SaleItem from "../models/SaleItem";
 
 class TransactionController {
     /**
@@ -84,9 +85,7 @@ class TransactionController {
     async getPurchasesHistory(req: Request, res: Response) {
         try {
             const userId = parseInt(req.params.userId, 10);
-            if (isNaN(userId)) {
-                return res.status(400).json({ message: "ID de usuário inválido." });
-            }
+            if (isNaN(userId)) return res.status(400).json({ message: "ID de usuário inválido." });
 
             if (userId !== (req as any).user.id) {
                 return res.status(403).json({ message: "Acesso negado. Você só pode visualizar seu próprio histórico." });
@@ -98,11 +97,30 @@ class TransactionController {
                 return res.status(404).json({ message: "Nenhuma compra encontrada para este usuário." });
             }
 
-            return res.json(purchases);
+            // Busca as vendas atreladas a cada compra
+            const purchasesWithSubOrders = await Promise.all(purchases.map(async (purchase: any) => {
+                // Converte para JSON puro
+                const pJson = purchase.toJSON ? purchase.toJSON() : purchase;
+                
+                // Busca os sub-pedidos (vendas) deste pedido principal
+                const sales = await Sale.findAll({ where: { purchaseId: pJson.id } });
+                
+                // Para cada sub-pedido, busca os itens atrelados a ele
+                const salesWithItems = await Promise.all(sales.map(async (sale) => {
+                    const sJson = sale.toJSON();
+                    // Busca os SaleItem que pertencem a esta venda específica
+                    const saleItems = await SaleItem.findAll({ where: { saleId: sJson.id } });
+                    return { ...sJson, specificItems: saleItems }; // Anexa os itens específicos do pacote
+                }));
+                
+                return { ...pJson, subOrders: salesWithItems };
+            }));
+
+            return res.json(purchasesWithSubOrders);
 
         } catch (error: any) {
             console.error("Erro ao obter histórico de compras:", error);
-            return res.status(500).json({ message: "Erro interno ao obter o histórico de compras", error: error.message });
+            return res.status(500).json({ message: "Erro interno", error: error.message });
         }
     }
 
@@ -192,13 +210,35 @@ class TransactionController {
             try {
                 if (sale.purchaseId) {
                     const purchase = await Purchase.findByPk(sale.purchaseId);
-                    if (purchase && (purchase.status === currentStatus || !purchase.status)) {
-                        purchase.status = newStatus;
-                        await purchase.save();
+                    if (purchase) {
+                        // Busca todas as vendas que pertencem a este mesmo pedido
+                        const allSales = await Sale.findAll({ where: { purchaseId: purchase.id } });
+
+                        // Verifica o progresso geral
+                        const isAllDelivered = allSales.every(s => s.status === 'Entregue' || s.status === 'Concluído');
+                        const isAllSent = allSales.every(s => s.status === 'Enviado' || s.status === 'Entregue' || s.status === 'Concluído');
+                        const isAllProcessing = allSales.every(s => s.status === 'Em processamento' || s.status === 'Enviado' || s.status === 'Entregue' || s.status === 'Concluído');
+
+                        // Define o status da Compra Pai com base no vendedor mais atrasado
+                        let finalPurchaseStatus = purchase.status; 
+                        
+                        if (isAllDelivered) {
+                            finalPurchaseStatus = 'Entregue';
+                        } else if (isAllSent) {
+                            finalPurchaseStatus = 'Enviado';
+                        } else if (isAllProcessing) {
+                            finalPurchaseStatus = 'Em processamento';
+                        }
+
+                        // Só atualiza o banco do cliente se houver uma mudança real no consenso
+                        if (purchase.status !== finalPurchaseStatus) {
+                            purchase.status = finalPurchaseStatus;
+                            await purchase.save();
+                        }
                     }
                 }
             } catch (syncError) {
-                console.error("Erro na sincronização da compra:", syncError);
+                console.error("Erro na sincronização de consenso da compra:", syncError);
             }
 
             return res.json({ message: `Status da venda atualizado para ${newStatus}`, sale });
@@ -219,41 +259,46 @@ class TransactionController {
         try {
             const purchaseId = parseInt(req.params.purchaseId, 10);
             const buyerId = (req as any).user.id;
-            const { newStatus } = req.body;
+            const { saleId } = req.body;
+
+            if (!saleId) {
+                return res.status(400).json({ message: "É necessário informar o saleId do pacote recebido." });
+            }
 
             const purchase = await Purchase.findByPk(purchaseId);
-            if (!purchase) return res.status(404).json({ message: "Compra não encontrada." });
-
-            if (purchase.userId !== buyerId) {
+            if (!purchase || purchase.userId !== buyerId) {
                 return res.status(403).json({ message: "Você não tem permissão para alterar esta compra." });
             }
 
-            const currentStatus = purchase.status || 'Aguardando pagamento';
+            // Procura a venda que o cliente clicou
+            const sale = await Sale.findOne({ where: { id: saleId, purchaseId: purchase.id } });
+            if (!sale) {
+                return res.status(404).json({ message: "Pacote não encontrado neste pedido." });
+            }
 
-            if (currentStatus !== 'Entregue' || newStatus !== 'Concluído') {
+            if (sale.status !== 'Entregue') {
                 return res.status(400).json({ 
-                    message: `Você só pode alterar para 'Concluído' quando estiver 'Entregue'. Status atual: '${currentStatus}'.` 
+                    message: `Você só pode concluir pacotes que já foram entregues. Status atual: '${sale.status}'.` 
                 });
             }
 
-            purchase.status = newStatus;
-            await purchase.save(); // Salva a alteração da Compra primeiro
+            // O cliente confirma que recebeu o pacote
+            sale.status = 'Concluído';
+            await sale.save();
 
-            // SINCRONIZAÇÃO: Atualiza todas as vendas atreladas a esta compra
-            try {
-                const sales = await Sale.findAll({ where: { purchaseId: purchase.id, status: currentStatus } });
-                for (const linkedSale of sales) {
-                    linkedSale.status = newStatus;
-                    await linkedSale.save();
-                }
-            } catch (syncError) {
-                console.error("Erro na sincronização das vendas:", syncError);
+            // Se todos os pacotes deste pedido foram concluídos, o pedido principal é concluído!
+            const allSales = await Sale.findAll({ where: { purchaseId: purchase.id } });
+            const allCompleted = allSales.every(s => s.status === 'Concluído');
+            
+            if (allCompleted && purchase.status !== 'Concluído') {
+                purchase.status = 'Concluído';
+                await purchase.save();
             }
 
-            return res.json({ message: "Compra concluída com sucesso!", purchase });
+            return res.json({ message: "Recebimento do pacote confirmado com sucesso!", purchase, sale });
 
         } catch (error: any) {
-            console.error("Erro ao atualizar status da compra:", error);
+            console.error("Erro ao atualizar status do pacote:", error);
             return res.status(500).json({ message: "Erro interno", error: error.message });
         }
     }
