@@ -67,14 +67,18 @@ export class PurchaseRepository {
 
                 totalAmount += subtotal;
 
-                const currentStock = product.stock;
+                const currentStock = Number(product.stock);
+                const requestedQuantity = Number(quantity);
 
-                if (quantity > currentStock) {
-                    throw new Error(`Estoque insuficiente para o produto: ${product.name}. Disponível: ${currentStock}, Solicitado: ${quantity}.`);
+                if (requestedQuantity > currentStock) {
+                    throw new Error(`Estoque insuficiente para o produto: ${product.name}. Disponível: ${currentStock}, Solicitado: ${requestedQuantity}.`);
                 }
 
-                const newStock = currentStock - quantity;
-                await product.update({ stock: newStock }, { transaction: t });
+                const newStock = currentStock - requestedQuantity;
+
+                // Acesso direto à tabela (Static Update) para garantir a gravação no banco
+                await Product.update({ stock: newStock }, { where: { id: product.id }, transaction: t });
+
                 if (!salesBySeller[sellerId]) {
                     salesBySeller[sellerId] = { totalAmount: 0, items: [] };
                 }

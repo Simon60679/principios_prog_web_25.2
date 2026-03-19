@@ -74,6 +74,8 @@ export default function HomePage() {
       }
       
       alert('Produto adicionado ao carrinho com sucesso!');
+      // Dispara o evento para a Navbar atualizar o contador imediatamente
+      window.dispatchEvent(new Event('cartUpdated'));
     } catch (error: any) {
       console.error("Erro ao adicionar ao carrinho:", error);
       alert(error.message || 'Não foi possível adicionar o produto neste momento.');
