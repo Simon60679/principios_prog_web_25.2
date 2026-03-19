@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
 
 // --- Interfaces ---
 interface Product {

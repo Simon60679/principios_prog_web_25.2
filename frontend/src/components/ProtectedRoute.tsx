@@ -1,4 +1,4 @@
-import React, { useContext, ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 
