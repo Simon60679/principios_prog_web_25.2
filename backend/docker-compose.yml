@@ -1,14 +1,13 @@
-# c:/WEB II/principios_prog_web_25.2/lab_init/docker-compose.yml
-version: '3.8'
+# c:/WEB II/principios_prog_web_25.2/backend/docker-compose.yml
 
 services:
   postgres-db:
     image: postgres:13
     container_name: meu-postgres-db
     environment:
-      POSTGRES_USER: lab-init
-      POSTGRES_PASSWORD: web1232 
-      POSTGRES_DB: lab_init_web_II 
+      POSTGRES_USER: backend
+      POSTGRES_PASSWORD: web1232
+      POSTGRES_DB: lab_init_web_II
     ports:
       - "5432:5432" # Mapeia a porta do seu PC para a porta do contêiner
     volumes:
