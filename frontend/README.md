@@ -1,73 +1,101 @@
-# React + TypeScript + Vite
+# DOCUMENTAÇÃO DO FRONTEND WEB
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Alunos:**
+1. Cristiano
+2. Lucas 
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 1. Introdução
 
-## React Compiler
+**Nome do projeto:**
+Marketplace
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Descrição geral:** 
+O projeto é um e-commerce no estilo marketplace voltado para a compra e venda de produtos. A aplicação frontend fornece a interface para que os usuários (compradores e vendedores) interajam com o sistema. O ambiente permite buscar produtos, adicionar itens ao carrinho, além de painéis dedicados para vendedores gerenciarem seus anúncios/vendas e compradores acompanharem seus pedidos, com uma máquina de estados de entrega e fluxos de autenticação.
 
-## Expanding the ESLint configuration
+**Tecnologias utilizadas:**
+* **React** (Biblioteca de interfaces)
+* **TypeScript** (Tipagem estática para JavaScript, garantindo maior segurança e manutenibilidade)
+* **Vite** (Ferramenta de build e servidor de desenvolvimento ultra-rápido)
+* **Tailwind CSS** (Framework CSS utilitário para estilização rápida e responsiva)
+* **React Router DOM** (Gerenciamento de rotas no cliente / SPA)
+* **Context API** (Gerenciamento de estado global da aplicação, especificamente para autenticação)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 2. Estrutura do Projeto
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Organização de pastas:**
+A estrutura de pastas segue um padrão de organização focado na separação de responsabilidades:
+* `/src/pages`: Contém as telas principais da aplicação, atuando como os contêineres que agrupam a lógica e a interface de cada rota (ex: `HomePage.tsx`, `PurchasesPage.tsx`, `SellerDashboardPage.tsx`).
+* `/src/contexts`: Abriga os provedores de contexto global. O `AuthContext.tsx`, por exemplo, gerencia o token JWT, persistência no `localStorage` e as funções de login/logout.
+* `/src/components`: Componentes reutilizáveis de UI menores.
+* `/src/services`: Chamadas isoladas à API.
+* `/src/assets`: Arquivos estáticos (imagens, ícones).
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+---
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 3. Design da Interface (UI/UX)
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+**Ferramentas de prototipagem (se houver):** 
+[Figma / Adobe XD - *Preencha caso tenha utilizado alguma ferramenta antes de codar*]
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+**Principais telas do sistema:**
+*(Instrução: Adicione aqui os prints das telas do seu sistema rodando)*
+1. **Página Inicial (Home / Vitrine):** Lista produtos, barra de pesquisa funcional e opção de adicionar ao carrinho.
+2. **Dashboard do Vendedor:** Formulário completo para cadastro/edição de produtos (com upload de múltiplas imagens) e listagem/gerenciamento do histórico de vendas.
+3. **Página de Compras (Meus Pedidos):** Visão do cliente detalhando os sub-pedidos e botão para confirmar o recebimento do pacote.
+
+---
+
+### 4. Componentização
+
+**Componentes principais:**
+* **AuthContext / AuthProvider:** Componente invisível de UI, fundamental para encapsular toda a lógica de segurança e prover os dados do usuário para os filhos.
+* **Product Card (na Home):** Estrutura de exibição de produtos contendo imagem, descrição, preço e botões de ação que lidam com status de estoque.
+* **Status Badge:** Lógica modularizada (`renderStatusBadge`) utilizada para renderizar "etiquetas" visuais consistentes indicando o estado atual de um pedido.
+
+**Reutilização e modularização:** 
+O código foi construído utilizando Hooks (`useState`, `useEffect`, `useContext`). A injeção de dependências do usuário é feita via `AuthContext`, dispensando o "prop-drilling". Funções utilitárias como formatação de data (`formatDate`) e cálculos de totais foram modularizadas.
+
+---
+
+### 5. Integração com Backend
+
+**API utilizada:** 
+A aplicação consome uma API REST própria construída em Node.js com Express e Sequelize. O tráfego de dados sensíveis é autenticado através de cabeçalhos de autorização (`Authorization: Bearer {token}`).
+
+**Principais endpoints consumidos:**
+* **Autenticação:** `POST /auth/login`, `POST /auth/logout`
+* **Produtos:** `GET /products`, `GET /products/search`, `POST /products`, `PUT /products/:id`, `PATCH /products/:id/stock`, `DELETE /products/:id`
+* **Carrinho/Transações:** `POST /cart/add`, `GET /users/:id/sales`, `GET /users/:id/purchases`, `PATCH /users/sales/:saleId/status`, `PATCH /purchases/:purchaseId/status`
+
+---
+
+### 6. Roteamento
+
+**Explicação das rotas:** 
+* `/`: **HomePage** – Rota pública principal, acessada por qualquer pessoa, exibindo a vitrine e a barra de busca.
+* `/login`: Tela de autenticação.
+* `/produto/:id`: Rota dinâmica para acessar a página de detalhe de um produto em específico.
+* *(Rotas Protegidas)*: Telas como o Dashboard do Vendedor (`/seller`) e Meus Pedidos (`/purchases`), acessíveis apenas quando logado.
+
+---
+
+### 7. Conclusão
+
+**Aprendizados principais:** 
+A implementação consolidou o entendimento sobre a criação de Single Page Applications (SPAs) com React e TypeScript. O uso de Context API provou-se uma ferramenta poderosa para manter o estado global da aplicação em sincronia. O manuseio de `FormData` para envio simultâneo de texto e arquivos de imagens trouxe grande aprendizado sobre requisições HTTP avançadas.
+
+**Desafios enfrentados e soluções encontradas:** 
+* *Desafio:* Lidar com o JWT e extrair informações sem chamadas extras ao backend. 
+* *Solução:* Implementado parse do Payload Base64 (usando `atob`) do JWT diretamente no frontend.
+* *Desafio:* Sincronizar os status complexos de pedidos.
+* *Solução:* Ajuste das interfaces para lidar com estados intermediários via requisições PATCH.
+
+**Melhorias futuras planejadas:** 
+* Extrair os cards e formulários para componentes menores visando testes unitários automatizados.
+* Implementar "Infinite Scroll" na tela principal.
+* Inclusão de um painel analítico no Dashboard do Vendedor.
+* Implementação do sistema de avaliações.
