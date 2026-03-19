@@ -38,14 +38,19 @@ A estrutura de pastas segue um padrão de organização focado na separação de
 
 ### 3. Design da Interface (UI/UX)
 
-**Ferramentas de prototipagem (se houver):** 
-[Figma / Adobe XD - *Preencha caso tenha utilizado alguma ferramenta antes de codar*]
+**Ferramentas de prototipagem:** 
+[Figma]
 
 **Principais telas do sistema:**
-*(Instrução: Adicione aqui os prints das telas do seu sistema rodando)*
+
 1. **Página Inicial (Home / Vitrine):** Lista produtos, barra de pesquisa funcional e opção de adicionar ao carrinho.
+<img width="996" height="848" alt="image" src="https://github.com/user-attachments/assets/1722db21-69da-4fba-9807-909809b58cf3" />
+
 2. **Dashboard do Vendedor:** Formulário completo para cadastro/edição de produtos (com upload de múltiplas imagens) e listagem/gerenciamento do histórico de vendas.
+<img width="1108" height="856" alt="image" src="https://github.com/user-attachments/assets/06c379f0-8a56-4bea-b771-0d2eaefcfcfa" />
+
 3. **Página de Compras (Meus Pedidos):** Visão do cliente detalhando os sub-pedidos e botão para confirmar o recebimento do pacote.
+<img width="1033" height="851" alt="image" src="https://github.com/user-attachments/assets/a7a57189-a1cd-48f5-880e-c495b9e15482" />
 
 ---
 
